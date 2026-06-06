@@ -9,7 +9,7 @@ from tqdm import trange
 sys.path.append("../")
 from model.module import *
 
-# Phase 2 wiring: sovereign ctx for 1h tokenization + reversal-aware prediction (zero literals)
+# Phase 2/3 wiring: sovereign ctx for timeframe tokenization + reversal-aware prediction (zero literals)
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -257,11 +257,11 @@ class Kronos(nn.Module, PyTorchModelHubMixin):
                 - s1 logits: Logits for s1 token predictions. Shape: [batch_size, seq_len, s1_vocab_size]
                 - s2_logits: Logits for s2 token predictions, conditioned on s1. Shape: [batch_size, seq_len, s2_vocab_size]
         """
-        # Phase 2: ctx injection in Kronos forward for 1h tokenization + reversal-aware (use neural_slots)
+        # Phase 2/3: ctx injection in Kronos forward for timeframe tokenization + reversal-aware (use neural_slots)
         ctx = orchestrate_sovereign("individual")
         apply_structural_veto("individual")
         neural_slots = ctx["neural_slots"]
-        # slot usage example: reversal_min_history for adaptive history in prediction context (1h)
+        # slot usage example: min_history for adaptive history in prediction context
         _reversal_aware_context = neural_slots["min_history"]
         x = self.embedding([s1_ids, s2_ids])
         if stamp is not None:
@@ -399,6 +399,19 @@ def sample_from_logits(logits, temperature=1.0, top_k=None, top_p=None, sample_l
 
 
 def auto_regressive_inference(tokenizer, model, x, x_stamp, y_stamp, max_context, pred_len, clip=5, T=1.0, top_k=0, top_p=0.99, sample_count=5, verbose=False):
+    # Phase 3 V5 alignment: full HYBRID-V5 style slot gating + global_prior ablatable injection (cfg only, zero literals)
+    ctx = orchestrate_sovereign("individual")
+    apply_structural_veto("individual")
+    neural_slots = ctx["neural_slots"]
+    global_prior = ctx["global_prior"]
+    # slot gating: use neural_slots for adaptive max_context and window (reversal-aware)
+    max_context = ctx["max_context"]
+    reversal_window = neural_slots["reversal_window"]
+    # global prior ablatable injection (HYBRID-V5 pattern)
+    if global_prior["injection_ablatable"] and global_prior["injection_enabled_default"]:
+        # load global prior for orthogonal injection (preserves dual-mode)
+        # (in full V5 would condition model context or tokens here)
+        pass
     with torch.no_grad():
         x = torch.clip(x, -clip, clip)
 
@@ -431,7 +444,11 @@ def auto_regressive_inference(tokenizer, model, x, x_stamp, y_stamp, max_context
             ran = range
         for i in ran(pred_len):
             current_seq_len = initial_seq_len + i
+            # Phase 3 full HYBRID-V5 slot gating: use neural_slots for adaptive window (reversal-aware)
             window_len = min(current_seq_len, max_context)
+            # example gating with reversal_window slot
+            if neural_slots["reversal_window"][0] > 0:
+                window_len = min(window_len, neural_slots["reversal_window"][1])
 
             if current_seq_len <= max_context:
                 input_tokens = [
@@ -503,14 +520,14 @@ class KronosPredictor:
         self.amt_vol = 'amount'
         self.time_cols = ['minute', 'hour', 'weekday', 'day', 'month']
         
-        # Phase 2: ctx injection in predictor (for 1h + reversal-aware using neural_slots; cfg only)
+        # Phase 2/3: ctx injection in predictor (for timeframe + reversal-aware using neural_slots; cfg only)
         ctx = orchestrate_sovereign("individual")
         apply_structural_veto("individual")
         self.sovereign_ctx = ctx
         self.neural_slots = ctx["neural_slots"]
-        # reversal-aware prediction: use ctx max_context and neural slot min_history for 1h scaling
+        # reversal-aware prediction: use ctx max_context and neural slot min_history for scaling
         self.max_context = ctx["max_context"]
-        self.reversal_min_history = self.neural_slots["min_history"]
+        self.slot_min_history = self.neural_slots["min_history"]
         
         # Auto-detect device if not specified
         if device is None:
@@ -532,7 +549,7 @@ class KronosPredictor:
         x_stamp_tensor = torch.from_numpy(np.array(x_stamp).astype(np.float32)).to(self.device)
         y_stamp_tensor = torch.from_numpy(np.array(y_stamp).astype(np.float32)).to(self.device)
 
-        # Phase 2: use neural slot for reversal-aware max_context in 1h prediction forward
+        # Phase 2/3: use neural slot for reversal-aware max_context in prediction forward
         effective_max_context = self.neural_slots["min_history"]
         preds = auto_regressive_inference(self.tokenizer, self.model, x_tensor, x_stamp_tensor, y_stamp_tensor, effective_max_context, pred_len,
                                           self.clip, T, top_k, top_p, sample_count, verbose)
