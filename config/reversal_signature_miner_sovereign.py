@@ -59,8 +59,12 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict) -> dict
         "history_length": len(df)
     }
 
-def mine_all_shards() -> None:
-    """Mine signatures from stored raw shards with sovereign threshold."""
+def mine_all_shards(symbols: list | None = None) -> None:
+    """Mine signatures from stored raw shards with sovereign threshold.
+    If symbols is provided (e.g. from discover_symbols_from_shards for E2E),
+    use exactly those (no synthetic fallback, no hard 530 cap). Otherwise fall back
+    to normal discover_symbols().
+    """
     cfg = get_sovereign_config()
     raw_shards_dir = get_storage_path(cfg, "raw_shards_dir")
     signatures_dir = get_storage_path(cfg, "signatures_individual_dir")
@@ -73,12 +77,19 @@ def mine_all_shards() -> None:
     
     os.makedirs(signatures_dir, exist_ok=True)
     
-    symbols = discover_symbols()
+    if symbols is None:
+        symbols = discover_symbols()
+        fetch_limit = cfg["symbols"]["target_count"]
+        symbols_to_mine = symbols[:fetch_limit]
+    else:
+        # E2E / on-disk mode: mine exactly the symbols that have shards present
+        symbols_to_mine = symbols
+        fetch_limit = len(symbols_to_mine)
+    
     processed = 0
     high_quality = 0
-    fetch_limit = cfg["symbols"]["target_count"]
     
-    for sym in symbols[:fetch_limit]:
+    for sym in symbols_to_mine:
         symbol_str = sym["symbol"]
         shard_path = os.path.join(raw_shards_dir, f"{symbol_str}_{tf}.parquet")
         

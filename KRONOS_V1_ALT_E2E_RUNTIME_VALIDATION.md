@@ -307,4 +307,21 @@ Expect "E2E complete." and exit 0.
 
 ---
 
+**Post-PASS improvement (user feedback on this transcript):**  
+Implemented Option B as requested. The E2E harness (and `mine_all_shards`) now supports mining *only the symbols that actually have shards on disk*:
+
+- Added `discover_symbols_from_shards(raw_shards_dir, timeframe)` in `symbol_discovery_sovereign.py` (scans `*.parquet` files, extracts base symbol names).
+- `mine_all_shards(symbols=...)` now accepts an explicit list (when provided it skips the synthetic `symbol_fallback` path and the 530 cap).
+- Updated `test_end_to_end.py` Step 2 to compute existing symbols from the cfg `raw_shards_dir` and pass them in.
+
+Result on re-run of the exact user command (no env var):
+- Step 2 now prints: `Found 2 symbols with shards on disk: ['BTC_USDT_USDT', 'ETH_USDT_USDT']`
+- Miner actually processes them: "Mined signature for BTC... Conf=0.779 ✓", same for ETH (Conf=0.91), "Processed 2 | High-quality (>= 0.72): 2"
+- No more 530 "Missing shard for SYMBOLxxx" spam.
+- Rest of harness (veto, extract, detect, ablation, ctx) unchanged and still PASS.
+
+This makes the E2E data path meaningful while preserving full cfg-driven + zero-literals behavior. The original 530 synthetic fallback is still used for real discovery runs.
+
+---
+
 **End of E2E Runtime Validation Report (PASS). Push this MD + the updated test_end_to_end.py to git.**

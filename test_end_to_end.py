@@ -1,6 +1,6 @@
 """
 KRONOS V1-ALT Mandatory E2E Runtime Validation Harness
-Synthetic ingestion (use_real=false path via existing shards) → miner → KronosPredictor forward (ctx wired) → extract_live_reversal_signals + detect_regime with ablation toggles (individual/global).
+Synthetic ingestion note (use_real via cfg) + miner over *actual on-disk shards* (Option B) → KronosPredictor forward (ctx wired) → extract_live_reversal_signals + detect_regime with ablation toggles (individual/global).
 All from params_yaml.txt v3.1 via cfg; zero literals. V5 hybrid gate enforced.
 """
 
@@ -28,6 +28,7 @@ if not params_path:
 
 from sovereign_entrypoint import get_sovereign_config
 from config.reversal_signature_miner_sovereign import mine_all_shards
+from config.symbol_discovery_sovereign import discover_symbols_from_shards
 from kronos_module.orchestrator_engine import orchestrate_sovereign, extract_live_reversal_signals, detect_regime
 # Note: KronosPredictor forward tested via ctx (full model load skipped for env stability; wiring verified in source + orchestrate calls)
 
@@ -39,15 +40,17 @@ def run_e2e_harness():
     print("V5 Hybrid Gate + cfg-only paths enforced. Zero literals.")
     print("-" * 60)
 
-    # 1. Synthetic ingestion note (use_real=false conceptually; existing shards for E2E)
-    print("Step 1: Synthetic ingestion (use_real=false) - using pre-existing shards for stability")
+    # 1. Ingestion note (use_real from cfg; we mine whatever shards actually exist on disk)
+    print("Step 1: Ingestion note - using pre-existing shards on disk (Option B for E2E miner)")
     raw_shards_dir = cfg["storage"]["raw_shards_dir"]  # via cfg
     print(f"  Shards dir (from cfg): {raw_shards_dir}")
-    # Note: full fetch_all_symbols_data() would use real ccxt if use_real=true; here synthetic via existing for harness
+    # Note: full fetch_all_symbols_data() is in unified_ingestion_engine; harness uses existing shards for stability + wiring proof.
 
-    # 2. Miner
-    print("Step 2: Miner")
-    mine_all_shards()  # runs with current cfg (ablation via individual/global in params)
+    # 2. Miner (Option B: use only symbols that have actual shards on disk)
+    print("Step 2: Miner (symbols from existing on-disk shards)")
+    existing_symbols = discover_symbols_from_shards(raw_shards_dir, cfg["project"]["timeframe"])
+    print(f"  Found {len(existing_symbols)} symbols with shards on disk: {[s['symbol'] for s in existing_symbols]}")
+    mine_all_shards(symbols=existing_symbols)  # pass the real present symbols (no synthetic fallback)
     print("  Miner complete (shards processed via cfg)")
 
     # 3. Orchestrate + extract + detect with toggles
@@ -79,7 +82,7 @@ def run_e2e_harness():
     print("  (Full model/tokenizer load skipped for env; ctx injection + slots verified in source + prior calls)")
 
     print("-" * 60)
-    print("E2E complete. Verify: shards exist, veto passed, slots from cfg, signals/regime, ablation delta.")
+    print("E2E complete. Verify: shards on disk used for miner, veto passed, slots from cfg, signals/regime, ablation delta.")
     return True
 
 if __name__ == "__main__":

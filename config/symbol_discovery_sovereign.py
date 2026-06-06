@@ -75,6 +75,34 @@ def discover_symbols() -> list:
     print(f"Discovered {len(discovered)} symbols (symbol_fallback from params)")
     return discovered
 
+def discover_symbols_from_shards(raw_shards_dir: str, timeframe: str) -> list:
+    """Discover symbols by scanning existing parquet shard files on disk.
+    Used for E2E harness and offline runs (Option B): mine only what data is actually present.
+    Returns list in the same shape as discover_symbols() for compatibility with the miner.
+    No network, no synthetic fallback.
+    """
+    import glob
+    import os
+
+    pattern = os.path.join(raw_shards_dir, f"*_{timeframe}.parquet")
+    shard_files = glob.glob(pattern)
+
+    discovered = []
+    for path in sorted(shard_files):
+        basename = os.path.basename(path)
+        # Expect: SYMBOLNAME_TIMEFRAME.parquet  (e.g. BTC_USDT_USDT_1h.parquet)
+        suffix = f"_{timeframe}.parquet"
+        if basename.endswith(suffix):
+            symbol = basename[: -len(suffix)]
+            discovered.append({
+                "symbol": symbol,
+                "volume_24h": 0,
+                "tags": []
+            })
+
+    return discovered
+
+
 if __name__ == "__main__":
     symbols = discover_symbols()
     print(f"Final sovereign discovery count: {len(symbols)}")
