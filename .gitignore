@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project-specific large/generated data
+data/
+logs/
+scratch/
+ablation/
+__pycache__/
+
+# Kronos model artifacts (large binaries)
+kronos_module/models/
+kronos_module/kronos_repo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / local config (params has placeholders but be safe)
+*.env
+.env.*
+secrets/
+api_keys.json
+
+# Temporary / debug
+*.log
+*.tmp
+*.bak
+*.parquet.tmp
+
+# Jupyter
+.ipynb_checkpoints/

@@ -1,0 +1,120 @@
+# KRONOS V1-ALT — Sovereign Params v3.1
+# Single source of truth. All values resolved exclusively here.
+# WARNING: Any edit to this file desyncs every downstream consumer.
+# Always run validate_sovereignty.py after changes.
+
+project:
+  name: &project_name KRONOS_V1_ALT
+  version: &version "3.1"
+  timeframe: "1h"
+  mode: "perpetuals_usdt"
+
+# ── Base path anchor ──────────────────────────────────────────
+base_path: &base_path "f:/kronos_v1_alt"
+
+storage:
+  base_path: *base_path
+  data_dir: !join [*base_path, "/data"]
+  raw_shards_dir: !join [*base_path, "/data/raw_shards"]
+  signatures_individual_dir: !join [*base_path, "/data/signatures/individual"]
+  signatures_global_prior_dir: !join [*base_path, "/data/signatures/global_prior"]
+  ontology_dir: !join [*base_path, "/data/ontology"]
+  checkpoints_dir: !join [*base_path, "/data/checkpoints"]
+  logs_dir: !join [*base_path, "/logs"]
+  config_dir: !join [*base_path, "/config"]
+  params_file: "params_yaml.txt"
+
+individual_mode:
+  enabled: true
+  primary_output: true
+  db_format: "parquet"
+
+global_prior_mode:
+  enabled: true
+  injection_ablatable: true
+  injection_enabled_default: true
+
+# Add this section directly to your params_yaml.txt to fix the KeyError
+data_fetch:
+  exchange: "binance"
+  use_real: true
+  max_retries: 5
+  rate_limit_ms: 200        # Buffered rate limit to guarantee 530-symbol scale
+  genesis_lookback_years: 6  # Resolves the inline literal years calculation
+  api_keys:
+    api_key: ""              # Public data only — leave empty
+    secret: ""               # Public data only — leave empty
+  symbol_mapping:
+    enabled: true
+    prefix: "SYMBOL"
+    suffix: "_USDT"
+    real_format: "{base}/USDT"
+  exchange_options:
+    defaultType: "future"
+  fetch_limits:
+    max_ohlcv: 1000
+  symbol_fallback:
+    prefix: "SYMBOL"
+    suffix: "_USDT"
+    volume_24h: 0
+    tags: []
+    format: "{prefix}{i:03d}{suffix}"
+
+time_constants:
+  ms_per_second: 1000
+  seconds_per_minute: 60
+  minutes_per_hour: 60
+  hours_per_day: 24
+  days_per_year: 365
+  unit_multipliers:
+    m: 60
+    h: 3600
+    d: 86400
+    w: 604800
+
+validator:
+  forbidden_inline_literals:
+    - "1h"
+    - "binance"
+    - "530"
+    - "1000000"
+  version_fallback: "unknown"
+
+utilities:
+  example_ticker: "BTC_USDT_1h.parquet"
+  example_ticker_prefix: "BTC_USDT_"
+  example_ticker_suffix: ".parquet"
+
+bootstrap:
+  params_path_env: "KRONOS_PARAMS_PATH"
+  relative_to_config: ".."
+  params_filename: "params_yaml.txt"
+
+thresholds:
+  reversal_confidence_min: 0.72
+  memory_adaptive_shard_size: 8192
+  max_context_tokens: 12000
+  # Neural reversal window/features (mathematical sovereignty)
+  reversal_window_min: 20
+  reversal_window_max: 50
+  reversal_window_factor: 0.3
+  reversal_hash_mod: 1000
+  reversal_variation_factor: 0.38
+  reversal_base_strength_multiplier: 4.2
+  reversal_base_strength_add: 0.55
+  reversal_confidence_clamp_min: 0.58
+  reversal_confidence_clamp_max: 0.91
+  reversal_min_history: 100
+
+# DYNAMIC DISCOVERY - resolved at runtime
+symbols:
+  target_count: 530
+  discovery_mode: "runtime_api"
+  filter: "USDT_PERPETUAL"
+  min_24h_volume_usd: 1000000
+  exclude_tags: ["delisted", "low_liquidity"]
+  # Filter normalization (full from params, no hardcode)
+  filter_quote: "USDT"
+  filter_type: "swap"
+  filter_keyword: "USDT_PERPETUAL"
+  filter_active: true

@@ -1,0 +1,40 @@
+{
+  "id": "buddy-humor-042fe628-ecc0-4dce-a46a-417d939e6d1a",
+  "title": "Humor for AgentsMdGapDetected",
+  "model": "groq/llama-3.1-8b-instant",
+  "mode": "buddy",
+  "tool_use": "none",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Generate 3 short, friendly, situational one-liners about: AgentsMdGapDetected in a software project.\nReal state: tasks:0 stuck:0, traj:0, mem:0, mcp:0 failing:0, providers_ok:true. Keep each under 80 chars. No jargon. No fake events.\nOutput as a JSON array of 3 strings."
+    },
+    {
+      "message_id": "7c417518-736f-4672-b911-31504e29ea8b",
+      "role": "assistant",
+      "content": "```json\n[\n  \"No tasks or stuck agents detected - everything looks good!\",\n  \"All systems go, no agents stuck or failing\",\n  \"Smooth sailing, no stuck or failing agents detected\"\n]\n```",
+      "finish_reason": "stop",
+      "usage": {
+        "prompt_tokens": 114,
+        "completion_tokens": 44,
+        "total_tokens": 158
+      },
+      "system_fingerprint": "fp_4387d3edbb"
+    }
+  ],
+  "created_at": "2026-06-03T18:01:55.524178700+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": false,
+  "auto_approve_editing_tools": false,
+  "auto_approve_dangerous_commands": false,
+  "buddy_meta": {
+    "is_buddy_chat": true,
+    "buddy_chat_kind": "system",
+    "workflow_id": "buddy_humor"
+  },
+  "root_chat_id": "buddy-humor-042fe628-ecc0-4dce-a46a-417d939e6d1a",
+  "updated_at": "2026-06-03T18:01:55.524424100+00:00"
+}
