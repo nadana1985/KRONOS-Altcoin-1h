@@ -2,17 +2,21 @@ import numpy as np
 import pandas as pd
 import torch
 from huggingface_hub import PyTorchModelHubMixin
+import os
 import sys
 
 from tqdm import trange
 
-sys.path.append("../")
+# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
+params_path = os.getenv("KRONOS_PARAMS_PATH")
+if params_path:
+    project_root = os.path.dirname(os.path.abspath(params_path))
+    model_dir = os.path.join(project_root, "kronos_module", "model")
+    sys.path.insert(0, model_dir)
 from model.module import *
 
 # Phase 2/3 wiring: sovereign ctx for timeframe tokenization + reversal-aware prediction (zero literals)
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, os.path.join(project_root, "kronos_module") if params_path else "")
 from orchestrator_engine import orchestrate_sovereign, apply_structural_veto
 
 

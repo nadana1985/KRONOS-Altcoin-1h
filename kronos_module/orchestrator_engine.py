@@ -1,14 +1,20 @@
 """
-Sovereign Orchestrator Engine (1h port)
+Sovereign Orchestrator Engine (timeframe port)
 
 Wires structural veto core + individual/global prior dual-mode.
 Uses only params_yaml.txt values. Small port of hybrid dual-mode + veto.
 Ablation supported via global_prior_mode.
 """
 
+import os
 import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent / "model"))
+
+# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
+params_path = os.getenv("KRONOS_PARAMS_PATH")
+if params_path:
+    project_root = os.path.dirname(os.path.abspath(params_path))
+    kronos_module_dir = os.path.join(project_root, "kronos_module")
+    sys.path.insert(0, kronos_module_dir)
 
 from structural_engine import get_dual_mode_context, apply_structural_veto
 

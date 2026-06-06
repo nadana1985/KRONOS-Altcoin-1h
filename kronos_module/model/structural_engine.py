@@ -1,14 +1,20 @@
 """
-KRONOS V1-ALT Sovereign Structural Engine (ported for 1h)
+KRONOS V1-ALT Sovereign Structural Engine (ported for timeframe)
 
 Provides structural veto core + individual/global prior dual-mode.
 All values resolved from params_yaml.txt via sovereign loader.
 Zero inline literals. Preserves orthogonal neural slot veto for scaling.
 """
 
+import os
 import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "config"))
+
+# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
+params_path = os.getenv("KRONOS_PARAMS_PATH")
+if params_path:
+    project_root = os.path.dirname(os.path.abspath(params_path))
+    config_dir = os.path.join(project_root, "config")
+    sys.path.insert(0, config_dir)
 
 from sovereign_entrypoint import get_sovereign_config
 

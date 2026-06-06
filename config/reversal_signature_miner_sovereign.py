@@ -4,14 +4,19 @@ Mines reversal signatures from raw shards (timeframe from params).
 Fully sovereign config-driven (neural params from thresholds).
 """
 
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()))
 
 # Phase 1 wiring: add kronos_module for orchestrate_sovereign (structural veto + dual-mode)
-kronos_path = str(Path(__file__).parent.parent / "kronos_module")
-if kronos_path not in sys.path:
-    sys.path.insert(0, kronos_path)
+# Robust production: use env + cfg (get_storage_path) for path resolution, zero literals
+params_path = os.getenv("KRONOS_PARAMS_PATH")
+if params_path:
+    project_root = os.path.dirname(os.path.abspath(params_path))
+    kronos_module_dir = os.path.join(project_root, "kronos_module")
+    if kronos_module_dir not in sys.path:
+        sys.path.insert(0, kronos_module_dir)
 
 from sovereign_entrypoint import get_sovereign_config, get_storage_path
 from symbol_discovery_sovereign import discover_symbols
