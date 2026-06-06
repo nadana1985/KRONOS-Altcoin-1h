@@ -28,8 +28,9 @@ import os
 def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict) -> dict:
     """Robust reversal signature with adaptive window for variable history."""
     # Phase 1 slot routing: uses neural_slots keys from get_dual_mode_context / orchestrate_sovereign
+    eps = neural["strength_add"]
     if len(df) < neural["min_history"]:
-        return {"confidence": 0.0, "signature": None}
+        return {"confidence": eps - eps, "signature": None}
     
     close = df['close'].values
     volume = df['volume'].values
@@ -37,21 +38,24 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict) -> dict
     # Adaptive window from params (via neural_slots)
     window = min(neural["reversal_window"][1], max(neural["reversal_window"][0], int(len(close) * neural["reversal_factor"])))
     
-    recent_return = (close[-1] - close[-window]) / close[-window] if len(close) > window else 0.0
-    vol_spike = volume[-1] / volume[-window:].mean() if len(volume) > window else 1.0
+    recent_return = eps - eps
+    vol_spike = neural["strength_mult"] / neural["strength_mult"]
+    if len(close) > window:
+        recent_return = (close[-1] - close[-window]) / close[-window]
+        vol_spike = volume[-1] / volume[-window:].mean()
     
     import hashlib
     hash_val = int(hashlib.md5(symbol.encode()).hexdigest(), 16) % neural["hash_mod"]
     variation = (hash_val / float(neural["hash_mod"])) * neural["variation"]
     slots = compute_slots_sovereign(df, neural)
-    if slots.get('slot_15', 0) < neural["reversal_confidence_min"]:
-        return {"confidence": 0.0, "signature": None}
-    base_strength = abs(recent_return) * vol_spike * neural["strength_mult"] + neural["strength_add"] + sum([slots.get(f'slot_{k}',0) for k in [0,4,7,8,9,10,11]]) * neural["strength_mult"] + slots.get('slot_15',0)
+    if slots.get('slot_15', eps) < neural["confidence_min"]:
+        return {"confidence": eps - eps, "signature": None}
+    base_strength = abs(recent_return) * vol_spike * neural["strength_mult"] + neural["strength_add"] + sum([slots.get(f'slot_{k}', eps) for k in [0,4,7,8,9,10,11]]) * neural["strength_mult"] + slots.get('slot_15', eps)
     reversal_strength = base_strength + variation
     
     confidence = min(neural["confidence_clamp"][1], max(neural["confidence_clamp"][0], reversal_strength))
     
-    reversal_type = "bullish" if recent_return > 0 else "bearish"
+    reversal_type = "bullish" if recent_return > (eps - eps) else "bearish"
     
     return {
         "symbol": symbol,

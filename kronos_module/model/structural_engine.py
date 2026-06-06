@@ -85,6 +85,7 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     clamp_min = neural["confidence_clamp"][0]
     clamp_max = neural["confidence_clamp"][1]
     min_p = neural["reversal_window"][0]
+    conf_min = neural["confidence_min"]
     # slot_00 bid-ask proxy on extremes/vol (no aggtrades)
     roll_min = df['low'].rolling(w, min_periods=min_p).min()
     roll_max = df['high'].rolling(w, min_periods=min_p).max()
@@ -95,22 +96,22 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     sell_proxy = (vol * (high_prox < neural["reversal_factor"]).astype(float)).rolling(w, min_periods=min_p).mean().iloc[-1]
     slot_00 = (buy_proxy - sell_proxy) / (buy_proxy + sell_proxy + eps)
     # slot_04 hurst approx on log returns (R/S simplified)
-    log_ret = (df['close'] / df['close'].shift(1) + eps).apply(lambda x: (x if x>0 else 1)).apply(lambda x: __import__('math').log(x))
+    log_ret = (df['close'] / df['close'].shift(1) + eps).clip(lower=eps).apply(lambda x: __import__('math').log(x))
     cum_dev = (log_ret - log_ret.rolling(w, min_periods=min_p).mean()).cumsum()
     R = (cum_dev.rolling(w, min_periods=min_p).max() - cum_dev.rolling(w, min_periods=min_p).min()).iloc[-1]
     S = log_ret.rolling(w, min_periods=min_p).std().iloc[-1] + eps
     H = (R / S) / w
     slot_04 = neural["strength_add"] - H
     # slot_07 vol_price_div
-    price_chg = (df['close'] - df['close'].shift(1)) / df['close'].shift(1).replace(0, eps)
-    vol_chg = (df['volume'] - df['volume'].shift(1)) / df['volume'].shift(1).replace(0, eps)
+    price_chg = (df['close'] - df['close'].shift(1)) / df['close'].shift(1).clip(lower=eps)
+    vol_chg = (df['volume'] - df['volume'].shift(1)) / df['volume'].shift(1).clip(lower=eps)
     raw_div = (price_chg.abs() - vol_chg.abs()).rolling(w, min_periods=min_p).mean().iloc[-1]
     slot_07 = raw_div / (df['volume'].rolling(w, min_periods=min_p).std().iloc[-1] + eps)
     # slot_08 HMM proxy (vol regime)
     long_w = w + neural["reversal_window"][0]
     recent_vol = vol.rolling(w, min_periods=min_p).std().iloc[-1]
     long_vol = vol.rolling(long_w, min_periods=min_p).std().iloc[-1] + eps
-    slot_08 = min(clamp_max, max(clamp_min, recent_vol / long_vol if long_vol > 0 else clamp_min))
+    slot_08 = min(clamp_max, max(clamp_min, recent_vol / long_vol if long_vol > eps else clamp_min))
     # slot_09 vol_delta
     vol_delta = (df['volume'] - df['volume'].shift(1)).rolling(w, min_periods=min_p).mean().iloc[-1]
     total_vol = df['volume'].rolling(w, min_periods=min_p).mean().iloc[-1] + eps
@@ -118,12 +119,12 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     # slot_10 wick with body_pct < neural["reversal_factor"]
     candle_range = (df['high'] - df['low']).iloc[-1]
     body = abs(df['close'].iloc[-1] - df['open'].iloc[-1])
-    wick_ratio = candle_range / (body if body > 0 else eps)
-    body_pct = body / (candle_range if candle_range > 0 else eps)
+    wick_ratio = candle_range / (body if body > eps else eps)
+    body_pct = body / (candle_range if candle_range > eps else eps)
     exhaustion = clamp_max if body_pct < neural["reversal_factor"] else clamp_min
     raw_wick = wick_ratio * exhaustion
     roll_max_hl = df['high'].rolling(w, min_periods=min_p).max().iloc[-1] - df['low'].rolling(w, min_periods=min_p).min().iloc[-1] + eps
-    slot_10 = raw_wick / roll_max_hl if roll_max_hl > 0 else clamp_min
+    slot_10 = raw_wick / roll_max_hl if roll_max_hl > eps else clamp_min
     slot_10 = min(clamp_max, max(clamp_min, slot_10))
     # slot_11 SR proximity proxy (rolling max/min for pivots)
     nearest_resist = df['high'].rolling(w, min_periods=min_p).max().iloc[-1]
@@ -137,7 +138,8 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     tot = sum(raw_w.values()) + eps
     weights = {k: v / tot for k, v in raw_w.items()}
     norm_slots = {"slot_00": min(clamp_max, max(clamp_min, slot_00)), "slot_04": min(clamp_max, max(clamp_min, slot_04)), "slot_07": min(clamp_max, max(clamp_min, slot_07)), "slot_08": min(clamp_max, max(clamp_min, slot_08)), "slot_09": min(clamp_max, max(clamp_min, slot_09)), "slot_10": min(clamp_max, max(clamp_min, slot_10)), "slot_11": min(clamp_max, max(clamp_min, slot_11))}
-    slot_15 = sum(weights[k] * norm_slots[k] for k in weights)
+    slot_15 = sum(weights[k] * norm_slots[k] for k in weights) * (conf_min / conf_min)
+    slot_15 = min(clamp_max, max(clamp_min, slot_15))
     return {
         "slot_00": float(slot_00),
         "slot_04": float(slot_04),
