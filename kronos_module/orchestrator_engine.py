@@ -52,3 +52,51 @@ def extract_live_reversal_signals(ablation_mode="individual"):
     }
     return signals
 
+
+def detect_regime(signals):
+    """Sovereign regime detection using neural_slots + global_prior toggles (cfg only, V5 hybrid gate)."""
+    cfg = get_sovereign_config()
+    slots = signals["neural_slots"]
+    gprior = signals["global_prior"]
+    # V5 hybrid: regime from slots (window vs min_history for adaptive/trending) + global toggle
+    window_max = slots["reversal_window"][1]
+    min_hist = slots["min_history"]
+    regime_base = "global_injected_" if (gprior["injection_ablatable"] and gprior["injection_enabled_default"]) else "individual_only_"
+    regime_type = "trending" if window_max > min_hist else "mean_reverting"
+    regime = regime_base + regime_type
+    flags = {
+        "global_prior_injected": gprior["injection_ablatable"] and gprior["injection_enabled_default"],
+        "high_reversal_adaptivity": window_max > min_hist,
+        "strong_slot_confidence": slots["confidence_min"] >= cfg["thresholds"]["reversal_confidence_min"],
+    }
+    return {"regime": regime, "flags": flags, "slots_used": slots}
+
+
+def run_sovereign_dashboard():
+    """CLI dashboard for live signals + regimes (Streamlit option in comments; cfg only)."""
+    cfg = get_sovereign_config()
+    print("=== SOVEREIGN LIVE SIGNAL DASHBOARD ===")
+    print(f"Params v{cfg['project']['version']} | Timeframe: {cfg['project']['timeframe']} | Target: {cfg['symbols']['target_count']}")
+    print("V5 Hybrid Gate: neural_slots + global_prior toggles active")
+    print("-" * 50)
+    # Toggle individual
+    sigs_ind = extract_live_reversal_signals("individual")
+    regime_ind = detect_regime(sigs_ind)
+    print(f"INDIVIDUAL MODE: signals={sigs_ind} | regime={regime_ind['regime']} | flags={regime_ind['flags']}")
+    print("-" * 50)
+    # Toggle global (ablation)
+    sigs_glob = extract_live_reversal_signals("global")
+    regime_glob = detect_regime(sigs_glob)
+    print(f"GLOBAL MODE (ablation toggle): signals={sigs_glob} | regime={regime_glob['regime']} | flags={regime_glob['flags']}")
+    print("-" * 50)
+    print("Ablation comparison complete. Use params to toggle global_prior_mode.injection_* for live runs.")
+    # Streamlit dashboard (run with: streamlit run this_file.py -- if streamlit installed; cfg only)
+    # import streamlit as st
+    # st.title("KRONOS V1-ALT Sovereign Dashboard")
+    # st.write(f"Regime: {regime_ind['regime']}")
+    # etc. (full cfg driven)
+
+
+# Note: For full live, call mine_all_shards() then use KronosPredictor.predict with ctx from orchestrate
+# All values from params_yaml.txt v3.1; zero literals.
+
