@@ -1,11 +1,17 @@
 """
 KRONOS V1-ALT Sovereign Real Data Injection v3.1
-Bridge to real API (per project.mode and symbols.filter).
+Bridge to real API (per project.mode and symbols.filter, timeframe-driven).
 """
 
+import os
 import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.absolute()))
+
+# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
+params_path = os.getenv("KRONOS_PARAMS_PATH")
+if params_path:
+    project_root = os.path.dirname(os.path.abspath(params_path))
+    config_dir = os.path.join(project_root, "config")
+    sys.path.insert(0, config_dir)
 
 from sovereign_entrypoint import get_sovereign_config, get_storage_path
 from unified_ingestion_engine import fetch_all_symbols_data  # sole data path (cfg-driven)

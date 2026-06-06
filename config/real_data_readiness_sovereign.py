@@ -1,13 +1,20 @@
 """
 KRONOS V1-ALT Real Data Transition Gate v3.1
-Dynamic sovereign readiness checker with absolute paths.
+Dynamic sovereign readiness checker with absolute paths (timeframe-driven).
 """
 
+import os
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.absolute()))
 
-from sovereign_entrypoint import get_sovereign_config
+# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
+params_path = os.getenv("KRONOS_PARAMS_PATH")
+if params_path:
+    project_root = os.path.dirname(os.path.abspath(params_path))
+    config_dir = os.path.join(project_root, "config")
+    sys.path.insert(0, config_dir)
+
+from sovereign_entrypoint import get_sovereign_config, get_storage_path
 
 def check_real_transition_readiness() -> bool:
     cfg = get_sovereign_config()
@@ -15,7 +22,8 @@ def check_real_transition_readiness() -> bool:
     print(f"Target symbols: {cfg['symbols']['target_count']}")
     print(f"Current use_real: {cfg['data_fetch']['use_real']}")
     
-    config_dir = Path(__file__).parent.absolute()
+    # Use cfg for config dir (robust, zero literals)
+    config_dir = Path(get_storage_path(cfg, "config_dir"))
     
     checks = []
     checks.append(("ccxt installed", lambda: "ccxt" in sys.modules or __import__("ccxt", silent=True) is not None))
