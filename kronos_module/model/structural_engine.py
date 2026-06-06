@@ -2,7 +2,7 @@
 KRONOS V1-ALT Sovereign Structural Engine (ported for timeframe)
 
 Provides structural veto core + individual/global prior dual-mode.
-All values resolved from params_yaml.txt via sovereign loader.
+All values resolved from sovereign params via loader.
 Zero inline literals. Preserves orthogonal neural slot veto for scaling.
 """
 
