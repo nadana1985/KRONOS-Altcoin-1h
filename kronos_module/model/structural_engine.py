@@ -69,4 +69,4 @@ def apply_structural_veto(mode: str = "individual"):
 
 
 # Ablation note: set global_prior_mode.injection_ablatable=false in params to ablate global prior.
-# All scaling (530 symbols, 1h) driven from symbols.target_count + project.timeframe.
+# All scaling driven from symbols.target_count + project.timeframe.

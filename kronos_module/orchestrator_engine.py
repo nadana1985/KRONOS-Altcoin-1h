@@ -17,7 +17,7 @@ def orchestrate_sovereign(mode: str = "individual"):
     """Primary entry for dual-mode with structural veto enforced."""
     ctx = apply_structural_veto(mode)  # Phase 1: wired for use in reversal miner (get_dual_mode_context + veto)
     # Memory-safe: use ctx["memory_shard"], ctx["max_context"], ctx["target_count"]
-    # for 530 symbol 1h scaling. Neural slots from thresholds.
+    # for target scaling. Neural slots from thresholds.
     # individual primary; global prior orthogonal + ablatable.
     return ctx
 
