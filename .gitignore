@@ -40,6 +40,9 @@ scratch/
 ablation/
 __pycache__/
 
+# AI / Refactoring session data (local only, not for version control)
+.refact/
+
 # Kronos model artifacts (large binaries)
 kronos_module/models/
 kronos_module/kronos_repo/
