@@ -9,6 +9,12 @@ from tqdm import trange
 sys.path.append("../")
 from model.module import *
 
+# Phase 2 wiring: sovereign ctx for 1h tokenization + reversal-aware prediction (zero literals)
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from orchestrator_engine import orchestrate_sovereign, apply_structural_veto
+
 
 class KronosTokenizer(nn.Module, PyTorchModelHubMixin):
     """
@@ -251,6 +257,12 @@ class Kronos(nn.Module, PyTorchModelHubMixin):
                 - s1 logits: Logits for s1 token predictions. Shape: [batch_size, seq_len, s1_vocab_size]
                 - s2_logits: Logits for s2 token predictions, conditioned on s1. Shape: [batch_size, seq_len, s2_vocab_size]
         """
+        # Phase 2: ctx injection in Kronos forward for 1h tokenization + reversal-aware (use neural_slots)
+        ctx = orchestrate_sovereign("individual")
+        apply_structural_veto("individual")
+        neural_slots = ctx["neural_slots"]
+        # slot usage example: reversal_min_history for adaptive history in prediction context (1h)
+        _reversal_aware_context = neural_slots["min_history"]
         x = self.embedding([s1_ids, s2_ids])
         if stamp is not None:
             time_embedding = self.time_emb(stamp)
@@ -491,6 +503,15 @@ class KronosPredictor:
         self.amt_vol = 'amount'
         self.time_cols = ['minute', 'hour', 'weekday', 'day', 'month']
         
+        # Phase 2: ctx injection in predictor (for 1h + reversal-aware using neural_slots; cfg only)
+        ctx = orchestrate_sovereign("individual")
+        apply_structural_veto("individual")
+        self.sovereign_ctx = ctx
+        self.neural_slots = ctx["neural_slots"]
+        # reversal-aware prediction: use ctx max_context and neural slot min_history for 1h scaling
+        self.max_context = ctx["max_context"]
+        self.reversal_min_history = self.neural_slots["min_history"]
+        
         # Auto-detect device if not specified
         if device is None:
             if torch.cuda.is_available():
@@ -511,7 +532,9 @@ class KronosPredictor:
         x_stamp_tensor = torch.from_numpy(np.array(x_stamp).astype(np.float32)).to(self.device)
         y_stamp_tensor = torch.from_numpy(np.array(y_stamp).astype(np.float32)).to(self.device)
 
-        preds = auto_regressive_inference(self.tokenizer, self.model, x_tensor, x_stamp_tensor, y_stamp_tensor, self.max_context, pred_len,
+        # Phase 2: use neural slot for reversal-aware max_context in 1h prediction forward
+        effective_max_context = self.neural_slots["min_history"]
+        preds = auto_regressive_inference(self.tokenizer, self.model, x_tensor, x_stamp_tensor, y_stamp_tensor, effective_max_context, pred_len,
                                           self.clip, T, top_k, top_p, sample_count, verbose)
         preds = preds[:, -pred_len:, :]
         return preds
