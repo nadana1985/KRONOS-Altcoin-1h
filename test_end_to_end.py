@@ -30,6 +30,8 @@ from sovereign_entrypoint import get_sovereign_config
 from config.reversal_signature_miner_sovereign import mine_all_shards
 from config.symbol_discovery_sovereign import discover_symbols_from_shards
 from kronos_module.orchestrator_engine import orchestrate_sovereign, extract_live_reversal_signals, detect_regime
+import pandas as pd
+from kronos_module.model.kronos import KronosPredictor
 # Note: KronosPredictor forward tested via ctx (full model load skipped for env stability; wiring verified in source + orchestrate calls)
 
 def run_e2e_harness():
@@ -77,12 +79,35 @@ def run_e2e_harness():
     print(f"  individual regime: {regime_ind['regime']}")
     print(f"  global regime: {regime_glob['regime']}")
 
-    # 4. KronosPredictor forward ctx verification (via orchestrate in init path; no full load to keep E2E stable)
-    print("Step 4: KronosPredictor forward ctx (from orchestrate in wired __init__)")
-    print("  (Full model/tokenizer load skipped for env; ctx injection + slots verified in source + prior calls)")
+    # 4. KronosPredictor forward ctx + real assertions (substance)
+    signatures_dir = cfg["storage"]["signatures_individual_dir"]
+    sig_files = [f for f in os.listdir(signatures_dir) if f.endswith("_signature.parquet")]
+    assert len(sig_files) >= 1, "At least one signature Parquet expected"
+    sig_df = pd.read_parquet(os.path.join(signatures_dir, sig_files[0]))
+    assert "confidence" in sig_df.columns, "confidence column missing"
+    ctx = orchestrate_sovereign("individual")
+    neural = ctx["neural_slots"]
+    min_conf = neural["confidence_min"] if "confidence_min" in neural else cfg["thresholds"]["reversal_confidence_min"]
+    assert (sig_df["confidence"] > min_conf).any(), "Expected confidence values above threshold"
+
+    # Exercise KronosPredictor forward using sovereign_ctx wiring and real tail from shard
+    predictor = KronosPredictor(sovereign_ctx=ctx)
+    causal_slice = pd.DataFrame()
+    if existing_symbols:
+        sym = existing_symbols[0]["symbol"]
+        tf = cfg["project"]["timeframe"]
+        shard_path = os.path.join(raw_shards_dir, f"{sym}_{tf}.parquet")
+        if os.path.exists(shard_path):
+            shard = pd.read_parquet(shard_path)
+            hist = neural["min_history"]
+            if hist > 0 and len(shard) > 0:
+                use_len = min(hist, len(shard))
+                causal_slice = shard.tail(use_len)
+    out = predictor.generate(causal_slice)
+    assert out is not None and (len(out) > 0 if hasattr(out, "__len__") else True), "Output non-empty"
 
     print("-" * 60)
-    print("E2E complete. Verify: shards on disk used for miner, veto passed, slots from cfg, signals/regime, ablation delta.")
+    print("E2E complete. All real side-effects + assertions passed.")
     return True
 
 if __name__ == "__main__":
