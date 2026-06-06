@@ -7,14 +7,24 @@ All from params_yaml.txt v3.1 via cfg; zero literals. V5 hybrid gate enforced.
 import os
 import sys
 
-# Robust bootstrap
+# Robust bootstrap for direct execution (even without env var):
+# Use script location to bootstrap paths (production should always set KRONOS_PARAMS_PATH)
+script_path = os.path.abspath(__file__)
+project_root = os.path.dirname(script_path)
+config_dir = os.path.join(project_root, "config")
+kronos_module_dir = os.path.join(project_root, "kronos_module")
+kronos_model_dir = os.path.join(kronos_module_dir, "model")
+for p in [project_root, config_dir, kronos_module_dir, kronos_model_dir]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+# Now handle KRONOS_PARAMS_PATH (required for cfg-driven everything)
 params_path = os.getenv("KRONOS_PARAMS_PATH")
-if params_path:
-    project_root = os.path.dirname(os.path.abspath(params_path))
-    config_dir = os.path.join(project_root, "config")
-    sys.path.insert(0, config_dir)
-    sys.path.insert(0, os.path.join(project_root, "kronos_module"))
-    sys.path.insert(0, os.path.join(project_root, "kronos_module", "model"))
+if not params_path:
+    params_path = os.path.join(project_root, "params_yaml.txt")
+    os.environ["KRONOS_PARAMS_PATH"] = params_path
+    print(f"INFO: KRONOS_PARAMS_PATH not set in environment; defaulted to {params_path} for this run.")
+    print("For production stability and full cfg-only paths, always set: $env:KRONOS_PARAMS_PATH = 'F:/kronos_v1_alt/params_yaml.txt'")
 
 from sovereign_entrypoint import get_sovereign_config
 from config.reversal_signature_miner_sovereign import mine_all_shards
