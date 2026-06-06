@@ -8,33 +8,40 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()))
 
+# Phase 1 wiring: add kronos_module for orchestrate_sovereign (structural veto + dual-mode)
+kronos_path = str(Path(__file__).parent.parent / "kronos_module")
+if kronos_path not in sys.path:
+    sys.path.insert(0, kronos_path)
+
 from sovereign_entrypoint import get_sovereign_config, get_storage_path
 from symbol_discovery_sovereign import discover_symbols
+from orchestrator_engine import orchestrate_sovereign
 import pandas as pd
 import os
 
 def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict) -> dict:
     """Robust reversal signature with adaptive window for variable history."""
-    if len(df) < neural["reversal_min_history"]:
+    # Phase 1 slot routing: uses neural_slots keys from get_dual_mode_context / orchestrate_sovereign
+    if len(df) < neural["min_history"]:
         return {"confidence": 0.0, "signature": None}
     
     close = df['close'].values
     volume = df['volume'].values
     
-    # Adaptive window from params
-    window = min(neural["reversal_window_max"], max(neural["reversal_window_min"], int(len(close) * neural["reversal_window_factor"])))
+    # Adaptive window from params (via neural_slots)
+    window = min(neural["reversal_window"][1], max(neural["reversal_window"][0], int(len(close) * neural["reversal_factor"])))
     
     recent_return = (close[-1] - close[-window]) / close[-window] if len(close) > window else 0.0
     vol_spike = volume[-1] / volume[-window:].mean() if len(volume) > window else 1.0
     
     import hashlib
-    hash_val = int(hashlib.md5(symbol.encode()).hexdigest(), 16) % neural["reversal_hash_mod"]
-    variation = (hash_val / float(neural["reversal_hash_mod"])) * neural["reversal_variation_factor"]
+    hash_val = int(hashlib.md5(symbol.encode()).hexdigest(), 16) % neural["hash_mod"]
+    variation = (hash_val / float(neural["hash_mod"])) * neural["variation"]
     
-    base_strength = abs(recent_return) * vol_spike * neural["reversal_base_strength_multiplier"] + neural["reversal_base_strength_add"]
+    base_strength = abs(recent_return) * vol_spike * neural["strength_mult"] + neural["strength_add"]
     reversal_strength = base_strength + variation
     
-    confidence = min(neural["reversal_confidence_clamp_max"], max(neural["reversal_confidence_clamp_min"], reversal_strength))
+    confidence = min(neural["confidence_clamp"][1], max(neural["confidence_clamp"][0], reversal_strength))
     
     reversal_type = "bullish" if recent_return > 0 else "bearish"
     
@@ -52,9 +59,12 @@ def mine_all_shards() -> None:
     cfg = get_sovereign_config()
     raw_shards_dir = get_storage_path(cfg, "raw_shards_dir")
     signatures_dir = get_storage_path(cfg, "signatures_individual_dir")
-    neural = cfg["thresholds"]
-    min_conf = neural["reversal_confidence_min"]
-    tf = cfg["project"]["timeframe"]
+    
+    # Phase 1: import orchestrate_sovereign + apply veto before loop + slot routing (cfg only, zero literals)
+    ctx = orchestrate_sovereign("individual")  # applies structural veto + dual-mode context
+    neural = ctx["neural_slots"]  # slot routing from structural engine
+    min_conf = neural["confidence_min"]
+    tf = ctx["timeframe"]
     
     os.makedirs(signatures_dir, exist_ok=True)
     
