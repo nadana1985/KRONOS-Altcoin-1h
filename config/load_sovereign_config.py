@@ -28,6 +28,7 @@ def load_sovereign_config(path: str = None) -> Dict[str, Any]:
 
     All YAML anchors and custom tags are resolved at load time.
     The returned dict is a plain Python dict — no YAML objects leak through.
+    Phase 0: structural veto + dual-mode bootstrap (individual primary + global ablatable).
 
     Args:
         path: Path to the params file. If None, uses the env var declared in params (cfg-driven).
