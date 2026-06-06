@@ -21,6 +21,7 @@ if params_path:
 from sovereign_entrypoint import get_sovereign_config, get_storage_path
 from symbol_discovery_sovereign import discover_symbols
 from orchestrator_engine import orchestrate_sovereign
+from model.structural_engine import compute_slots_sovereign
 import pandas as pd
 import os
 
@@ -42,8 +43,10 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict) -> dict
     import hashlib
     hash_val = int(hashlib.md5(symbol.encode()).hexdigest(), 16) % neural["hash_mod"]
     variation = (hash_val / float(neural["hash_mod"])) * neural["variation"]
-    
-    base_strength = abs(recent_return) * vol_spike * neural["strength_mult"] + neural["strength_add"]
+    slots = compute_slots_sovereign(df, neural)
+    if slots.get('slot_15', 0) < neural["reversal_confidence_min"]:
+        return {"confidence": 0.0, "signature": None}
+    base_strength = abs(recent_return) * vol_spike * neural["strength_mult"] + neural["strength_add"] + sum([slots.get(f'slot_{k}',0) for k in [0,4,7,8,9,10,11]]) * neural["strength_mult"] + slots.get('slot_15',0)
     reversal_strength = base_strength + variation
     
     confidence = min(neural["confidence_clamp"][1], max(neural["confidence_clamp"][0], reversal_strength))
@@ -56,7 +59,8 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict) -> dict
         "reversal_type": reversal_type,
         "strength": round(reversal_strength, 4),
         "timestamp": df['timestamp'].iloc[-1],
-        "history_length": len(df)
+        "history_length": len(df),
+        "structural_slots": slots
     }
 
 def mine_all_shards(symbols: list | None = None) -> None:
