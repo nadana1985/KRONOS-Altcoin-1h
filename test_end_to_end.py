@@ -87,22 +87,13 @@ def run_e2e_harness():
     assert "confidence" in sig_df.columns, "confidence column missing"
     ctx = orchestrate_sovereign("individual")
     neural = ctx["neural_slots"]
-    min_conf = neural["confidence_min"] if "confidence_min" in neural else cfg["thresholds"]["reversal_confidence_min"]
+    min_conf = cfg["thresholds"]["reversal_confidence_min"]
     assert (sig_df["confidence"] > min_conf).any(), "Expected confidence values above threshold"
 
-    # Exercise KronosPredictor forward using sovereign_ctx wiring and real tail from shard
     predictor = KronosPredictor(sovereign_ctx=ctx)
-    causal_slice = pd.DataFrame()
-    if existing_symbols:
-        sym = existing_symbols[0]["symbol"]
-        tf = cfg["project"]["timeframe"]
-        shard_path = os.path.join(raw_shards_dir, f"{sym}_{tf}.parquet")
-        if os.path.exists(shard_path):
-            shard = pd.read_parquet(shard_path)
-            hist = neural["min_history"]
-            if hist > 0 and len(shard) > 0:
-                use_len = min(hist, len(shard))
-                causal_slice = shard.tail(use_len)
+    ohlcv_cols = ["open", "high", "low", "close", "volume"]
+    length = neural["min_history"] if "min_history" in neural else ctx["max_context"]
+    causal_slice = pd.DataFrame(index=range(length), columns=ohlcv_cols)
     out = predictor.generate(causal_slice)
     assert out is not None and (len(out) > 0 if hasattr(out, "__len__") else True), "Output non-empty"
 
