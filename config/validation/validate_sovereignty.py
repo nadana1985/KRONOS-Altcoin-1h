@@ -35,6 +35,13 @@ def validate_sovereignty():
             print(f"🛑 Missing sovereign section: {sec}")
             sys.exit(1)
     
+    # Phase 4: neural conviction config presence (cfg-driven)
+    neural_cfg = cfg.get("neural", {})
+    if neural_cfg:
+        print(f" Neural config present: mode={neural_cfg.get('neural_conv_mode')}, use_full={neural_cfg.get('use_full_model')}")
+    else:
+        print(" Neural config using defaults (scalar mode).")
+    
     validator = cfg["validator"]
     version = cfg["project"].get("version", validator["version_fallback"])
     print(f" Params v{version} loaded successfully.")

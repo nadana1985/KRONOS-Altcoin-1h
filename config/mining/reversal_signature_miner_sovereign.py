@@ -32,8 +32,8 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict, ctx=Non
     if len(df) < neural["min_history"]:
         return {"confidence": eps - eps, "signature": None}
     
-    close = df['close'].values
-    volume = df['volume'].values
+    close = pd.to_numeric(df['close'].values, errors='coerce')
+    volume = pd.to_numeric(df['volume'].values, errors='coerce')
     # Strict causal verified: negative shifts/slices only ([-1], [-window:]); window from neural; no future data.
     # Inefficiencies for 10M+ bars: full df load + per-symbol compute_slots (O(n) rolls); use .values (already here) + chunked for shards.
     # Vectorized/chunked: slices for last window only in hot path; see structural for more .values/np.
@@ -67,24 +67,33 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict, ctx=Non
         except:
             neural_conv = neural["confidence_min"] - neural["confidence_min"]
     print("neural_conv", neural_conv)
+    # support list of 8 distinct from full Kronos (Phase 3)
+    neural_conv_scalar = neural_conv
+    if isinstance(neural_conv, (list, tuple)) and len(neural_conv) > 0:
+        neural_conv_scalar = sum(neural_conv) / len(neural_conv)
     factor = neural["strength_add"] / neural["strength_add"]
     slot15 = slots.get('slot_15', neural["confidence_min"])
-    amplified = reversal_strength * (factor + neural_conv * neural["variation"])
+    amplified = reversal_strength * (factor + neural_conv_scalar * neural["variation"])
     confidence = min(neural["confidence_clamp"][1], max(neural["confidence_clamp"][0], amplified))
     
     dna_vector = dict(slots)
-    for k in [16,17,18,19,20,21,22,23]:
-        dna_vector[f"slot_{k}"] = neural_conv
+    # Phase 3: assign distinct neural features from full model if list of 8, else scalar (no replication)
+    if isinstance(neural_conv, (list, tuple)) and len(neural_conv) >= 8:
+        for i, k in enumerate(range(16, 24)):
+            dna_vector[f"slot_{k}"] = neural_conv[i]
+    else:
+        for k in [16,17,18,19,20,21,22,23]:
+            dna_vector[f"slot_{k}"] = neural_conv
     vol_delta = (volume[-1] - volume[-window:].mean()) / (volume[-window:].mean() + eps) if len(volume) > window else (eps - eps)
     mfe_proxy = slot15 * (factor + vol_spike * neural["variation"])
     dna_vector["slot_24"] = vol_delta
     dna_vector["slot_25"] = mfe_proxy
-    dna_vector["slot_26"] = neural_conv
-    dna_vector["slot_27"] = abs(slot15 - neural_conv)
+    dna_vector["slot_26"] = neural_conv_scalar
+    dna_vector["slot_27"] = abs(slot15 - neural_conv_scalar)
     dna_vector["slot_28"] = neural["strength_add"]-neural["strength_add"]
-    dna_vector["slot_29"] = slot15 * neural_conv / (neural["strength_add"] + slot15)
+    dna_vector["slot_29"] = slot15 * neural_conv_scalar / (neural["strength_add"] + slot15)
     dna_vector["slot_30"] = mfe_proxy
-    dna_vector["slot_31"] = neural_conv
+    dna_vector["slot_31"] = neural_conv_scalar
     
     reversal_type = "bullish" if recent_return > (eps - eps) else "bearish"
     
@@ -96,7 +105,7 @@ def mine_reversal_signature(df: pd.DataFrame, symbol: str, neural: dict, ctx=Non
         "timestamp": df['timestamp'].iloc[-1],
         "history_length": len(df),
         "structural_slots": slots,
-        "neural_conviction": round(neural_conv, 6),
+        "neural_conviction": round(neural_conv_scalar if 'neural_conv_scalar' in locals() else (sum(neural_conv)/len(neural_conv) if isinstance(neural_conv,(list,tuple)) and len(neural_conv)>0 else neural_conv), 6),
         "dna_vector": dna_vector
     }
 

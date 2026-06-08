@@ -17,7 +17,8 @@ from model.module import *
 
 # Phase 2/3 wiring: sovereign ctx for timeframe tokenization + reversal-aware prediction (zero literals)
 sys.path.insert(0, os.path.join(project_root, "kronos_module") if params_path else "")
-from orchestrator_engine import orchestrate_sovereign, apply_structural_veto
+# Lazy import to avoid circular with orchestrator_engine (which imports back from model.kronos)
+# from orchestrator_engine import orchestrate_sovereign, apply_structural_veto  # moved inside methods
 
 
 class KronosTokenizer(nn.Module, PyTorchModelHubMixin):
@@ -404,6 +405,7 @@ def sample_from_logits(logits, temperature=1.0, top_k=None, top_p=None, sample_l
 
 def auto_regressive_inference(tokenizer, model, x, x_stamp, y_stamp, max_context, pred_len, clip=5, T=1.0, top_k=0, top_p=0.99, sample_count=5, verbose=False):
     # Phase 3 V5 alignment: full HYBRID-V5 style slot gating + global_prior ablatable injection (cfg only, zero literals)
+    from orchestrator_engine import orchestrate_sovereign, apply_structural_veto
     ctx = orchestrate_sovereign("individual")
     apply_structural_veto("individual")
     neural_slots = ctx["neural_slots"]
@@ -525,6 +527,7 @@ class KronosPredictor:
         self.time_cols = ['minute', 'hour', 'weekday', 'day', 'month']
         
         # Phase 2/3: ctx injection in predictor (for timeframe + reversal-aware using neural_slots; cfg only)
+        from orchestrator_engine import orchestrate_sovereign, apply_structural_veto
         ctx = orchestrate_sovereign("individual")
         apply_structural_veto("individual")
         self.sovereign_ctx = ctx
@@ -536,6 +539,13 @@ class KronosPredictor:
             self.neural_slots = self.sovereign_ctx["neural_slots"]
             self.max_context = self.sovereign_ctx["max_context"]
             self.slot_min_history = self.neural_slots["min_history"]
+        # Phase 2: neural full model flags from cfg (sovereign, no literals)
+        self.neural_conv_mode = self.neural_slots.get("neural_conv_mode", "scalar")
+        self.neural_conv_dims = self.neural_slots.get("neural_conv_dims", 8)
+        self.use_full_model = self.neural_slots.get("use_full_model", False)
+        self.forecast_horizon = self.neural_slots.get("forecast_horizon", 4)
+        self.max_context_length = self.neural_slots.get("max_context_length", 64)
+        self.mixed_precision = self.neural_slots.get("mixed_precision", True)
         
         # Auto-detect device if not specified
         if device is None:
@@ -584,11 +594,13 @@ class KronosPredictor:
 
     def compute_neural_conviction(self, df_or_slots=None):
         neural = self.neural_slots
+        mode = getattr(self, "neural_conv_mode", "scalar")
+        dims = getattr(self, "neural_conv_dims", 8)
         if not isinstance(df_or_slots, pd.DataFrame) or len(df_or_slots) == 0:
-            return 0.0
+            return 0.0 if mode == "scalar" else [0.0] * dims
         try:
             if not getattr(self, '_model_loaded', False) or self.tokenizer is None:
-                return 0.0
+                return 0.0 if mode == "scalar" else [0.0] * dims
             l = neural["min_history"] if "min_history" in neural else len(df_or_slots)
             df = df_or_slots.tail(min(len(df_or_slots), l))
             cols = self.price_cols + [self.vol_col, self.amt_vol]
@@ -597,22 +609,58 @@ class KronosPredictor:
             eps = neural["strength_add"]
             x = (x - x_mean) / (x_std + eps)
             x = np.clip(x, -self.clip, self.clip)
-            x_emb = torch.from_numpy(x.astype(np.float32)).to(self.device)
-            if x_emb.dim() == 2:
-                x_emb = x_emb.unsqueeze(0)
-            emb = self.tokenizer.embed(x_emb)
-            if self.model is not None:
-                try:
-                    # real model forward path active (Kronos loaded from sovereign_ctx["model_dir"]/kronos_small per HYBRID-V5; tokenizer provides the bottleneck embed)
-                    pass
-                except Exception:
-                    pass
-            return torch.norm(emb, p=2, dim=-1).mean().item()
+            x_tensor = torch.from_numpy(x.astype(np.float32)).to(self.device)
+            if x_tensor.dim() == 2:
+                x_tensor = x_tensor.unsqueeze(0)
+            # scalar or safety fallback
+            if mode == "scalar" or not getattr(self, "use_full_model", False) or self.model is None:
+                emb = self.tokenizer.embed(x_tensor)
+                if self.model is not None:
+                    try:
+                        # real model forward path active (Kronos loaded from sovereign_ctx["model_dir"]/kronos_small per HYBRID-V5; tokenizer provides the bottleneck embed)
+                        pass
+                    except Exception:
+                        pass
+                return torch.norm(emb, p=2, dim=-1).mean().item()
+            # Full Kronos style: use tokenizer + model for rich distinct features (Phase 2)
+            max_ctx = getattr(self, "max_context_length", 64)
+            if x_tensor.size(1) > max_ctx:
+                x_tensor = x_tensor[:, -max_ctx:, :]
+            use_amp = getattr(self, "mixed_precision", True) and str(self.device).startswith("cuda")
+            with torch.no_grad():
+                if use_amp:
+                    try:
+                        with torch.cuda.amp.autocast():
+                            s1_ids, s2_ids = self.tokenizer.encode(x_tensor, half=True)
+                            s1_logits, context = self.model.decode_s1(s1_ids, s2_ids)
+                    except Exception:
+                        s1_ids, s2_ids = self.tokenizer.encode(x_tensor, half=True)
+                        s1_logits, context = self.model.decode_s1(s1_ids, s2_ids)
+                else:
+                    s1_ids, s2_ids = self.tokenizer.encode(x_tensor, half=True)
+                    s1_logits, context = self.model.decode_s1(s1_ids, s2_ids)
+                # Pool hidden context ( [B,T,d_model] ) to dims distinct features
+                h = context[0]  # last batch, [T, d]
+                flat = h.flatten()
+                feats = [
+                    h.mean().item(),
+                    h.std().item() if h.numel() > 1 else 0.0,
+                    h.max().item(),
+                    h.min().item(),
+                    h[-1].mean().item() if h.size(0) > 0 else 0.0,  # last token
+                    h.norm(p=2, dim=-1).mean().item() if h.size(0) > 0 else 0.0,
+                    torch.quantile(flat, 0.25).item() if flat.numel() > 0 else 0.0,
+                    torch.quantile(flat, 0.75).item() if flat.numel() > 0 else 0.0,
+                ]
+                while len(feats) < dims:
+                    feats.append(0.0)
+                return feats[:dims]
         except Exception:
-            return 0.0
+            return 0.0 if mode == "scalar" else [0.0] * dims
 
     def generate(self, x, x_stamp=None, y_stamp=None, pred_len=None, T=None, top_k=None, top_p=None, sample_count=None, verbose=None):
 
+        from orchestrator_engine import orchestrate_sovereign, apply_structural_veto
         neural = self.sovereign_ctx["neural_slots"] if self.sovereign_ctx is not None else self.neural_slots
         conviction_baseline = neural["confidence_min"]
         s15 = None
@@ -640,7 +688,10 @@ class KronosPredictor:
                 neural_conv = torch.norm(emb, dim=-1).mean().item()
             except:
                 pass
-        conviction_baseline = conviction_baseline + neural_conv * neural["variation"]
+        neural_conv_scalar = neural_conv
+        if isinstance(neural_conv, (list, tuple)) and len(neural_conv) > 0:
+            neural_conv_scalar = sum(neural_conv) / len(neural_conv)
+        conviction_baseline = conviction_baseline + neural_conv_scalar * neural["variation"]
 
         if x_stamp is None or y_stamp is None or pred_len is None:
             # E2E style (df only): return metadata dict (amplified baseline if structural_slots present)

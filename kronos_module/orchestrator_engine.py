@@ -20,7 +20,8 @@ if params_path:
 
 from structural_engine import get_dual_mode_context, apply_structural_veto
 from sovereign_entrypoint import get_sovereign_config
-from model.kronos import KronosPredictor
+# Lazy import to break circular with model.kronos (which imports back from orchestrator_engine)
+# from model.kronos import KronosPredictor  # moved inside extract_live_reversal_signals
 
 
 def orchestrate_sovereign(mode: str = "individual"):
@@ -44,6 +45,7 @@ def extract_live_reversal_signals(ablation_mode="individual"):
     # Real trigger (no placeholders): miner via Option B + real predictor
     from config.reversal_signature_miner_sovereign import mine_all_shards
     mine_all_shards()  # real shards, real neural gate, real conv
+    from model.kronos import KronosPredictor
     predictor = KronosPredictor(sovereign_ctx=ctx)
     signals = {
         "mode": ablation_mode,

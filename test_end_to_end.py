@@ -84,6 +84,9 @@ def run_e2e_harness():
             try:
                 nc = predictor.compute_neural_conviction(price_df.tail(neural["min_history"]))
                 print(f"  neural_conviction: {nc}")
+                if isinstance(nc, (list, tuple)):
+                    print(f"  neural features (8 distinct expected): len={len(nc)}, sample={nc[:3]}")
+                    assert len(nc) == 8, "full Kronos neural must return 8 distinct features for slots 16-23"
                 print(f"  pre/post amplification delta: {amp_delta}")
             except:
                 pass

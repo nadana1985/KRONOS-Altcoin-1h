@@ -127,6 +127,37 @@ thresholds:
   reversal_confidence_clamp_max: 0.91
   reversal_min_history: 100
 
+  # Phase 1: Proxy Hardening params (from KRONOS_V1_ALT_PROXY_HARDENING_ROADMAP.md)
+  vpin_window: 100
+  hurst_lags: [5, 10, 20, 50]
+  hurst_min_periods: 20
+  slot15_entropy_weight: 0.1
+  # slot_weights still derived from existing strength_* / variation for backward, entropy added to slot_15
+
+  # Phase 2: Proxy Hardening (from Roadmap)
+  ofi_window: 50
+  ofi_pressure_mult: 1.0
+  regime_adx_window: 14
+  regime_vol_short: 10
+  regime_vol_long: 50
+  amihud_window: 50
+  divergence_weight: 1.0
+
+  # Phase 3: Final Proxy Hardening
+  exhaustion_windows: [5, 20]
+  wick_ratio_mult: 1.5
+  sr_windows: [20, 50, 100]
+  proximity_decay: 0.95
+
+neural:
+  # Neural conviction modes for slots 16-23 (cfg-driven, zero literals)
+  neural_conv_mode: "scalar"          # options: scalar | hidden_states
+  neural_conv_dims: 8
+  forecast_horizon: 4
+  use_full_model: false               # safety switch to enable full Kronos transformer
+  max_context_length: 64              # guard for memory (e.g. AMD RX 560)
+  mixed_precision: true
+
 # DYNAMIC DISCOVERY - resolved at runtime
 symbols:
   refresh_discovery: true
