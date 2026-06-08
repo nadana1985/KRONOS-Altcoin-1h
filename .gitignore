@@ -43,6 +43,9 @@ __pycache__/
 # AI / Refactoring session data (local only, not for version control)
 .refact/
 
+# Surgical session diff artifacts (precise unified diffs from reorg/audit/slots/DNA/miner steps; co-located in docs/diffs/ with *_SUMMARY.md)
+docs/diffs/*.txt
+
 # Kronos model artifacts (large binaries)
 kronos_module/models/
 kronos_module/kronos_repo/

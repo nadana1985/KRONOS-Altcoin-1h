@@ -79,6 +79,7 @@ index e69de29..26a4709 100644
 +- All values from params_yaml.txt (loaded via get_sovereign_config)
 +- data/, logs/, models/, attachments/, __pycache__ ignored
 +- Proposed for cleanliness; no files moved yet.
++- Diff files from root (current_diff.txt, diff*.txt, reorg_*.txt, struct_diff.txt etc. – 14+ artifacts): suggest moving to docs/diffs/ (keeps root clean; fits with docs/ for summaries, slot ref, audit MDs; add "docs/diffs/" or "diff*.txt" to .gitignore if transient). 
 +
 +## Usage
 +- Set KRONOS_PARAMS_PATH

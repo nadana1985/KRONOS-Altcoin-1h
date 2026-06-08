@@ -1,0 +1,10 @@
+pandas
+numpy
+torch
+hdbscan
+ccxt
+pyyaml
+python-dateutil
+tqdm
+# Note: all runtime deps resolved via cfg in sovereign_entrypoint / load_sovereign_config
+# Dev/test: pytest, etc. not included (use cfg thresholds for validation)
