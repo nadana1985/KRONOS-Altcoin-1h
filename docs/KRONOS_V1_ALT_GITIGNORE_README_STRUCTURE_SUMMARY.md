@@ -80,6 +80,7 @@ index e69de29..26a4709 100644
 +- data/, logs/, models/, attachments/, __pycache__ ignored
 +- Proposed for cleanliness; no files moved yet.
 +- Diff files from root (current_diff.txt, diff*.txt, reorg_*.txt, struct_diff.txt etc. – 14+ artifacts): suggest moving to docs/diffs/ (keeps root clean; fits with docs/ for summaries, slot ref, audit MDs; add "docs/diffs/" or "diff*.txt" to .gitignore if transient). 
++- **KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md** — Comprehensive gap analysis between claims and delivered heuristic engine (8 structural proxies + replicated neural scalar + redundancy notes).
 +
 +## Usage
 +- Set KRONOS_PARAMS_PATH

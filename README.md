@@ -83,14 +83,20 @@ See slot_reference_manual.md for 32-slot DNA.
 - python test_end_to_end.py (E2E with neural_slots, slot_15 veto, dna_vector).
 - All paths/cfg from get_sovereign_config() + get_storage_path (no hardcodes).
 
-## Architecture
-- params_yaml.txt: single source (thresholds -> neural_slots via get_dual_mode_context in structural).
-- config/ subpackages: ingestion (fetch via ccxt, full kline), mining (reversal + dna_vector 00-31 + HDBSCAN phylum), validation (sovereignty + load), utils (entry, discovery, priors).
-- kronos_module/ (unchanged): model (compute_slots_sovereign with full kline + neural_conviction L_p; predictor with sovereign_ctx).
-- Dual-mode: individual primary (via ctx["is_individual_primary"]), global prior ablatable (cfg["global_prior_mode"]).
-- Option B: discover from shards (cfg["storage"]["raw_shards_dir"]), no synthetic.
-- Veto: slot_15 first in miner (if < neural["confidence_min"] early return).
-- Sovereign: zero literals; everything via cfg/neural_slots/ctx or sovereign_ctx["model_dir"].
-- For 10M+ bars: vectorized (.values + np in slots), GPU hint (torch.cuda), memory batching (chunked reads in miner/ingestion).
+## Architecture (V1-ALT Delivered Reality)
 
-See KRONOS_V1_ALT_*_SUMMARY.md for incremental changes.
+**KRONOS V1-ALT** is a robust, fully sovereign, **real-shards-only** (Option B), cfg-driven reversal signature mining engine. It features an absolute structural veto (`slot_15` first) and dual-mode operation (individual primary + ablatable global prior).
+
+### Delivered 32-Slot Causal DNA
+- **8 structural microstructure proxies** (slots 00, 04, 07-11, 15) computed via `compute_slots_sovereign` in `kronos_module/model/structural_engine.py`.
+- **1 neural conviction signal** (slots 16-23): single L2 norm of tokenizer embedding layer on recent normalized tail (replicated 8×; full Kronos model forward stubbed).
+- **16+ derived/auxiliary slots**: vol_delta, MFE proxies, residuals, and zero-expressions — all built from the same cfg-driven variables.
+- **HDBSCAN phylum**: post-hoc on structural 8 slots only.
+- **Core gating**: Hard `slot_15` veto before DNA vector construction or neural amplification.
+
+This delivers a **high-throughput, configurable heuristic microstructure scoring system** that is E2E-passing and production-operable at 530+ altcoin scale. It prioritizes pragmatism, vectorization, and causality over full deep-model per-bar computation.
+
+**See** `docs/slot_reference_manual.md` (especially "Current Implementation" subsections) for precise delivered behavior vs. aspirational formulas.  
+**Reality Audit**: `docs/KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md`
+
+All values remain strictly cfg-driven via `params_yaml.txt` (no inline literals introduced).

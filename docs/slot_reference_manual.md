@@ -2,6 +2,13 @@
 
 Complete mathematical definitions, formulas, and engineering explanations for every slot in the KRONOS signature vector.
 
+> **V1-ALT Current Delivered System (as of June 2026)**  
+> 8 structural proxies + 1 distinct neural scalar (tokenizer.embed L2 norm, replicated across slots 16-23) + 16 derived proxies.  
+> HDBSCAN applied only to structural subset. `slot_15` is the hard early veto gate.  
+> Full details in "Current Implementation" subsections below.  
+> Aspirational/target formulas preserved in dedicated sections for V5 evolution.  
+> **Reference**: [32-Slot Causal DNA Reality Audit](KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md)
+
 ---
 
 ## Layer Overview
@@ -49,6 +56,8 @@ Where:
 
 **Current Implementation (in compute_slots_sovereign + dna_vector):**
 Uses full kline taker_buy_base_volume (fallback to vol*0.5 proxy via neural strength_add expr) and (vol - taker_buy). Same low/high_prox + rolling mean as proxy for EWM. All params (w, eps, reversal_factor, strength_*) from neural_slots only. Matches manual intent for absorption at extremes.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 
@@ -128,6 +137,8 @@ The model is refit every `hmm_refit_interval=1152` bars with no warm-start (each
 
 **Current Implementation (proxy):**
 recent_vol = vol.rolling std. long_vol = vol.rolling (w + min_p) std + eps. slot_08 = clamp( recent / long ). Simple regime proxy (no real HMM/GaussianHMM or refit).
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 
@@ -225,6 +236,8 @@ slot_15 = Σ(weight_k × norm_k)   where Σ(weight_k) = 1.0
 **Current Implementation (compute_slots_sovereign + miner):**
 raw_w from neural (strength_mult for 00/07/10, variation for 04/11, strength_add for 08/09). weights = raw / sum. norm_slots = clamp each. slot_15 = sum(w * norm) * (conf_min/conf_min), then clamp. Veto (if slot_15 < neural["confidence_min"]) is enforced in miner *before* dna_vector build (absolute structural gate).
 
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
+
 ---
 
 ## LAYER 3 — Neural Embedding Slots
@@ -257,6 +270,8 @@ The **L2 norm** of `[slot_16 … slot_23]` drives the `neural_conviction` score.
 
 **Current Implementation (in dna_vector after compute_neural_conviction):**
 All 8 (slot_16–23) are set to the single neural_conv value (L_p norm of tokenizer.embed on causal OHLCV+vol slice, + strength_add for non-zero). This is a placeholder until full kronos-mini embeddings are wired into the predictor for distinct dims. Uses sovereign_ctx model_dir for load.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 
@@ -392,6 +407,8 @@ Then included in the signature dict as "dna_vector": dna_vector (saved as column
 All values, eps, factors, and zero expressions come exclusively from neural (no inline literals). The vector is causal and available for E2E / global prior / ontology downstream. Structural veto (slot_15) remains absolute and first.
 
 This is the current (simplified proxy) implementation of the 32-slot DNA. Full distinct neural embeddings (16-23), real HMM (08), and richer aux/metadata will require further wiring.
+
+**Reality Note**: The 32-key `dna_vector` is fully constructed and validated in E2E, but contains significant redundancy (8 identical neural slots + multiple linear transforms of core variables). Effective dimensionality is lower than 32. HDBSCAN uses only structural keys. This is explicitly documented for transparency and future hardening.
 
 ---
 
