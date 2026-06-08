@@ -2,12 +2,12 @@
 
 Complete mathematical definitions, formulas, and engineering explanations for every slot in the KRONOS signature vector.
 
-> **V1-ALT Current Delivered System (as of June 2026)**  
-> 8 structural proxies + 1 distinct neural scalar (tokenizer.embed L2 norm, replicated across slots 16-23) + 16 derived proxies.  
-> HDBSCAN applied only to structural subset. `slot_15` is the hard early veto gate.  
-> Full details in "Current Implementation" subsections below.  
+> **V1-ALT Current Delivered System (post Proxy Hardening Phases 1-3 + Neural Upgrade)**  
+> 8 structural microstructure proxies (Phases 1-3 hardening complete: multi-lag Hurst, VPIN, Amihud+weighted divergence, ADX-inspired regime, OFI+cumulative pressure, multi-scale wick exhaustion, dynamic S/R with decay) + 1 distinct neural conviction signal (Kronos hidden-state features via full model when enabled; otherwise scalar L_p embed norm) + 16 derived proxies.  
+> HDBSCAN applied only to structural subset. `slot_15` is the hard early veto gate (cfg-driven logistic+entropy composite).  
+> Full details in "Current Implementation" subsections below (multi-window, cfg-driven via neural_slots from params_yaml.txt).  
 > Aspirational/target formulas preserved in dedicated sections for V5 evolution.  
-> **Reference**: [32-Slot Causal DNA Reality Audit](KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md)
+> **References**: [32-Slot Causal DNA Reality Audit](KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md), [Proxy Hardening Phase 3](KRONOS_V1_ALT_PROXY_HARDENING_PHASE3_SUMMARY.md), [Neural Features Upgrade](KRONOS_V1_ALT_FULL_KRONOS_NEURAL_FEATURES_UPGRADE_SUMMARY.md)
 
 ---
 
@@ -55,7 +55,7 @@ Where:
 - `slot_00 ≈ 0.0` → Neutral / no dominant side.
 
 **Current Implementation (in compute_slots_sovereign + dna_vector):**
-Uses full kline taker_buy_base_volume (fallback to vol*0.5 proxy via neural strength_add expr) and (vol - taker_buy). Same low/high_prox + rolling mean as proxy for EWM. All params (w, eps, reversal_factor, strength_*) from neural_slots only. Matches manual intent for absorption at extremes.
+Uses full kline taker_buy_base_volume (coerced numeric) and (vol - taker_buy). Computes OFI as (taker_buy - (vol - taker_buy)).rolling(ofi_window).mean() normalized by rolling vol mean, plus cumulative pressure sum scaled by ofi_pressure_mult, averaged and clamped. All params (ofi_window, ofi_pressure_mult, reversal_factor, strength_*, eps, clamps, min_p) from neural_slots (sourced from params_yaml.txt thresholds). Vectorized rolling, causal .iloc[-1]. Phase 2 hardening applied.
 
 *Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
@@ -84,7 +84,9 @@ Where `n` = lookback window length, log_returns over the lookback.
 - `H = 0.5` → Random walk → `slot_04 = 0`
 
 **Current Implementation (compute_slots_sovereign):**
-R/S on log((close/close.shift)+eps).clip. slot_04 = neural["strength_add"] − H (uses 0.55 from neural_slots as ~0.5 proxy; no inline 0.5 literal). Causal rolling. Matches simplified R/S from manual.
+Multi-lag Rescaled Range (R/S) mean over hurst_lags=[5,10,20,50] (per-lag min_periods safety). log_ret via .values + np (vectorized for 10M+). H = mean(log(R/S)/log(lag)); slot_04 = 0.5 − hurst. All params (hurst_lags, hurst_min_periods, strength_add/eps for safety) from neural_slots. Phase 1 hardening; causal, vectorized where possible. Matches multi-lag doctrine.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 
@@ -107,8 +109,10 @@ slot_07 = z-score(raw_divergence, window=24)
 - Large positive `slot_07` → Price accelerating without volume support → potential exhaustion
 - Negative `slot_07` → Volume is growing faster than price → confirmed move
 
-**Current Implementation:**
-price_chg and vol_chg on qvol (quote_volume from full kline). raw_div = rolling_mean(|price| - |vol|). slot_07 = raw / (qvol std + eps). All from neural_slots. Uses full kline as specified.
+**Current Implementation (Phase 2 hardening):**
+Amihud illiquidity (|ret| / dollar_vol rolling mean over amihud_window) + volume-weighted divergence ( |price_chg - vol_chg| mean over window / qvol std, scaled by divergence_weight). Combined as (amihud + weight * div) / (1+weight), clamped. All params (amihud_window, divergence_weight, etc.) from neural_slots. Vectorized .values + rolling, causal. Uses full kline.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 
@@ -135,8 +139,8 @@ The model is refit every `hmm_refit_interval=1152` bars with no warm-start (each
 - `slot_08 ≈ 0.0` → In quiet / low-vol regime
 - `slot_08 = 0.0` frequently (79.8% in March 2026) — most bars are NOT in the extreme regime
 
-**Current Implementation (proxy):**
-recent_vol = vol.rolling std. long_vol = vol.rolling (w + min_p) std + eps. slot_08 = clamp( recent / long ). Simple regime proxy (no real HMM/GaussianHMM or refit).
+**Current Implementation (Phase 2 hardening):**
+ADX-inspired: dm_pos/neg from high/low diffs, adx_approx = 100 * abs(dm_pos-dm_neg)/(dm_pos+dm_neg+eps) over regime_adx_window. Multi-window vol clustering: recent_vol (regime_vol_short) / long_vol (regime_vol_long). regime_score = vol_cluster * (adx_approx / 50), clamped. All params from neural_slots. Vectorized rolling + .iloc[-1], causal. Lightweight (no GMM/HMM).
 
 *Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
@@ -161,8 +165,10 @@ slot_09 = volume_delta / (total_volume + ε)
 - `−1.0` → All selling, zero buying
 - `0.0` → Perfectly balanced order flow
 
-**Current Implementation:**
-buy = taker_buy_base_volume (full kline), sell = vol - buy. vol_delta = (buy-sell) rolling mean. total = (buy+sell) mean + eps. slot_09 = delta / total. Matches manual VPIN intent using full kline.
+**Current Implementation (Phase 1 hardening):**
+VPIN-style: buy_vol = taker_buy_base (coerced), sell_vol = vol - buy_vol. delta = buy-sell, cum_delta = delta.rolling(vpin_window).sum(), total_vol = vol.rolling(vpin_window).sum(). vpin = |cum_delta| / (total_vol + eps) clipped [0,1]. slot_09 = vpin.iloc[-1]. All from neural_slots (vpin_window). Vectorized causal rolling. Enhanced over simple delta/total.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 
@@ -189,6 +195,11 @@ slot_10       = raw_score / rolling_max(raw_score, window=288)  clipped to [0, 1
 - `slot_10 = 1.0` → Maximum wick exhaustion signal seen in the past 288 bars
 - `slot_10 = 0.0` → No exhaustion / normal bar (majority of bars — 79.8% in March 2026)
 
+**Current Implementation (Phase 3 multi-scale hardening):**
+Full kline (coerced numeric). Upper/lower wicks from high/low vs close/open. wick_ratio = (upper_wick + lower_wick) / (body + eps) * wick_ratio_mult. exhaustion = clip(wick_ratio, 0, 5). For each win in exhaustion_windows: rolling quantile(0.75) of exhaustion (safe min_periods=min(min_p,win)). slot_10 = mean(exh_scores), clamped. All params (exhaustion_windows, wick_ratio_mult, etc.) from neural_slots (params_yaml.txt). Vectorized rolling + Python mean, causal .iloc[-1]. Replaces simple last-bar wick/body ratio.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
+
 ---
 
 ### Slot_11 — Support/Resistance KDE Proximity
@@ -214,6 +225,11 @@ slot_11 = exp(−min(dist_resist, dist_support))
 **Interpretation:**
 - `slot_11 ≈ 1.0` → Price is very close to a major S/R level (< 0.5% away)
 - `slot_11 ≈ 0.0` → Price is far from any historical S/R zone
+
+**Current Implementation (Phase 3 dynamic S/R with decay):**
+Full kline (coerced). For each win in sr_windows: resist = high.rolling(win).max().iloc[-1], support = low.rolling(win).min().iloc[-1]. dist_r/s = abs(resist/support - close) / (close * reversal_factor + eps). min_dist = min of dists. prox = (1/(1+min_dist)) * (decay ** min_dist). slot_11 = mean(prox_scores over windows), clamped. All params (sr_windows, proximity_decay, reversal_factor, etc.) from neural_slots. Vectorized rolling, causal. Replaces simple rolling max/min distance.
+
+*Note: This is the pragmatic V1-ALT proxy as delivered. See Reality Audit for gap analysis and evolution path.*
 
 ---
 

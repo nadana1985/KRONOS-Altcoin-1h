@@ -81,6 +81,8 @@ index e69de29..26a4709 100644
 +- Proposed for cleanliness; no files moved yet.
 +- Diff files from root (current_diff.txt, diff*.txt, reorg_*.txt, struct_diff.txt etc. – 14+ artifacts): suggest moving to docs/diffs/ (keeps root clean; fits with docs/ for summaries, slot ref, audit MDs; add "docs/diffs/" or "diff*.txt" to .gitignore if transient). 
 +- **KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md** — Comprehensive gap analysis between claims and delivered heuristic engine (8 structural proxies + replicated neural scalar + redundancy notes).
++- **KRONOS_V1_ALT_PROXY_HARDENING_PHASE3_SUMMARY.md** — Phase 3 multi-scale hardening (slot_10 exhaustion, slot_11 dynamic S/R decay) + full Phases 1-3 + Neural upgrade.
++- **KRONOS_V1_ALT_PROXY_HARDENING_DOCS_REALIGNMENT_SUMMARY.md** — Post-hardening documentation realignment (slot manual, README, cross-refs).
 +
 +## Usage
 +- Set KRONOS_PARAMS_PATH

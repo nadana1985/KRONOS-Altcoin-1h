@@ -88,15 +88,16 @@ See slot_reference_manual.md for 32-slot DNA.
 **KRONOS V1-ALT** is a robust, fully sovereign, **real-shards-only** (Option B), cfg-driven reversal signature mining engine. It features an absolute structural veto (`slot_15` first) and dual-mode operation (individual primary + ablatable global prior).
 
 ### Delivered 32-Slot Causal DNA
-- **8 structural microstructure proxies** (slots 00, 04, 07-11, 15) computed via `compute_slots_sovereign` in `kronos_module/model/structural_engine.py`.
-- **1 neural conviction signal** (slots 16-23): single L2 norm of tokenizer embedding layer on recent normalized tail (replicated 8×; full Kronos model forward stubbed).
+- **8 structural microstructure proxies** (slots 00, 04, 07-11, 15) computed via `compute_slots_sovereign` in `kronos_module/model/structural_engine.py`. Proxy hardening Phases 1-3 complete (multi-lag Hurst, VPIN, Amihud+divergence, ADX-regime, OFI+cumulative pressure, multi-scale wick exhaustion, dynamic S/R with decay; all multi-window/cfg-driven via new params like exhaustion_windows, sr_windows, etc.).
+- **1 neural conviction signal** (slots 16-23): Kronos hidden-state features (full model when use_full_model enabled in params; otherwise scalar L_p embed norm replicated).
 - **16+ derived/auxiliary slots**: vol_delta, MFE proxies, residuals, and zero-expressions — all built from the same cfg-driven variables.
 - **HDBSCAN phylum**: post-hoc on structural 8 slots only.
-- **Core gating**: Hard `slot_15` veto before DNA vector construction or neural amplification.
+- **Core gating**: Hard `slot_15` veto (logistic+entropy composite) before DNA vector construction or neural amplification.
 
 This delivers a **high-throughput, configurable heuristic microstructure scoring system** that is E2E-passing and production-operable at 530+ altcoin scale. It prioritizes pragmatism, vectorization, and causality over full deep-model per-bar computation.
 
 **See** `docs/slot_reference_manual.md` (especially "Current Implementation" subsections) for precise delivered behavior vs. aspirational formulas.  
-**Reality Audit**: `docs/KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md`
+**Reality Audit**: `docs/KRONOS_V1_ALT_32_SLOT_CAUSAL_DNA_REALITY_AUDIT_SUMMARY.md`  
+**Proxy Hardening**: `docs/KRONOS_V1_ALT_PROXY_HARDENING_PHASE3_SUMMARY.md`
 
 All values remain strictly cfg-driven via `params_yaml.txt` (no inline literals introduced).
