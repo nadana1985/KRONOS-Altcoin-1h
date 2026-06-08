@@ -19,10 +19,14 @@ storage:
   signatures_individual_dir: !join [*base_path, "/data/signatures/individual"]
   signatures_global_prior_dir: !join [*base_path, "/data/signatures/global_prior"]
   ontology_dir: !join [*base_path, "/data/ontology"]
+  archive_dir: !join [*base_path, "/data/archive/delisted"]
   checkpoints_dir: !join [*base_path, "/data/checkpoints"]
   logs_dir: !join [*base_path, "/logs"]
   config_dir: !join [*base_path, "/config"]
   params_file: "params_yaml.txt"
+  models_dir: !join [*base_path, "/kronus_module/models"]
+  kronos_small_dir: !join [*base_path, "/kronus_module/models/kronos_small"]
+  kronos_tokenizer_dir: !join [*base_path, "/kronus_module/models/kronos_tokenizer"]
 
 individual_mode:
   enabled: true
@@ -40,7 +44,11 @@ data_fetch:
   use_real: true
   max_retries: 5
   rate_limit_ms: 200        # Buffered rate limit to guarantee 530-symbol scale
+  rate_limit_delay: 0.5     # Inter-request delay in seconds
+  max_workers: 4            # Parallel ingestion threads
   genesis_lookback_years: 6  # Resolves the inline literal years calculation
+  end_date_offset_days: 1     # Fetch up to yesterday (1 = exclude today)
+  auto_fill_gaps: true        # Forward-fill NaNs in critical columns
   api_keys:
     api_key: ""              # Public data only — leave empty
     secret: ""               # Public data only — leave empty
@@ -49,6 +57,19 @@ data_fetch:
     prefix: "SYMBOL"
     suffix: "_USDT"
     real_format: "{base}/USDT"
+  kline_fields:
+    - "timestamp"
+    - "open"
+    - "high"
+    - "low"
+    - "close"
+    - "volume"
+    - "close_time"
+    - "quote_volume"
+    - "count"
+    - "taker_buy_base_volume"
+    - "taker_buy_quote_volume"
+    - "ignore"
   exchange_options:
     defaultType: "future"
   fetch_limits:
@@ -108,6 +129,7 @@ thresholds:
 
 # DYNAMIC DISCOVERY - resolved at runtime
 symbols:
+  refresh_discovery: true
   target_count: 530
   discovery_mode: "runtime_api"
   filter: "USDT_PERPETUAL"

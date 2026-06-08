@@ -65,3 +65,6 @@ api_keys.json
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Attachments / large non-code
+attachments/

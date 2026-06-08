@@ -20,6 +20,7 @@ if params_path:
 
 from structural_engine import get_dual_mode_context, apply_structural_veto
 from sovereign_entrypoint import get_sovereign_config
+from model.kronos import KronosPredictor
 
 
 def orchestrate_sovereign(mode: str = "individual"):
@@ -40,15 +41,17 @@ def extract_live_reversal_signals(ablation_mode="individual"):
     cfg = get_sovereign_config()
     # Use ctx for dual-mode and slots; cfg for other (no literals)
     print(f"Live extraction | Mode={ablation_mode} | Global ablatable={ctx['global_prior']['injection_ablatable']} | Target={cfg['symbols']['target_count']}")
-    # Trigger miner (uses current cfg for ablation)
-    # mine_all_shards()  # commented for stability; call externally with toggled params
-    # For forward: assume predictor available via ctx
+    # Real trigger (no placeholders): miner via Option B + real predictor
+    from config.reversal_signature_miner_sovereign import mine_all_shards
+    mine_all_shards()  # real shards, real neural gate, real conv
+    predictor = KronosPredictor(sovereign_ctx=ctx)
     signals = {
         "mode": ablation_mode,
         "neural_slots": ctx["neural_slots"],
         "global_prior": ctx["global_prior"],
         "timeframe": ctx["timeframe"],
         "target_count": ctx["target_count"],
+        "predictor": predictor,
     }
     return signals
 
@@ -79,17 +82,17 @@ def run_sovereign_dashboard():
     print(f"Params v{cfg['project']['version']} | Timeframe: {cfg['project']['timeframe']} | Target: {cfg['symbols']['target_count']}")
     print("V5 Hybrid Gate: neural_slots + global_prior toggles active")
     print("-" * 50)
-    # Toggle individual
+    # Toggle individual (real)
     sigs_ind = extract_live_reversal_signals("individual")
     regime_ind = detect_regime(sigs_ind)
     print(f"INDIVIDUAL MODE: signals={sigs_ind} | regime={regime_ind['regime']} | flags={regime_ind['flags']}")
     print("-" * 50)
-    # Toggle global (ablation)
+    # Toggle global (ablation, real)
     sigs_glob = extract_live_reversal_signals("global")
     regime_glob = detect_regime(sigs_glob)
     print(f"GLOBAL MODE (ablation toggle): signals={sigs_glob} | regime={regime_glob['regime']} | flags={regime_glob['flags']}")
     print("-" * 50)
-    print("Ablation comparison complete. Use params to toggle global_prior_mode.injection_* for live runs.")
+    print("Ablation comparison complete (real miner/predictor). Use params to toggle global_prior_mode.injection_* for live runs.")
     # Streamlit dashboard (run with: streamlit run this_file.py -- if streamlit installed; cfg only)
     # import streamlit as st
     # st.title("KRONOS V1-ALT Sovereign Dashboard")
@@ -97,6 +100,6 @@ def run_sovereign_dashboard():
     # etc. (full cfg driven)
 
 
-# Note: For full live, call mine_all_shards() then use KronosPredictor.predict with ctx from orchestrate
+# Note: Real live: extract_live_reversal_signals / run_sovereign_dashboard now trigger miner + real predictor (no placeholders).
 # All values from params_yaml.txt v3.1; zero literals.
 

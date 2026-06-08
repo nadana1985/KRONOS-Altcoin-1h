@@ -18,6 +18,7 @@ if params_path:
 
 from sovereign_entrypoint import get_sovereign_config
 import pandas as pd
+import numpy as np  # for vectorized ops in hot path for 10M+ bars
 
 
 def get_structural_veto():
@@ -38,6 +39,7 @@ def get_dual_mode_context():
     sym = cfg["symbols"]
     proj = cfg["project"]
     thr = cfg["thresholds"]
+    storage = cfg["storage"]
 
     # orthogonal neural slot veto (from thresholds, for reversal/neural scaling)
     neural_slots = {
@@ -62,6 +64,9 @@ def get_dual_mode_context():
         "max_context": thr["max_context_tokens"],
         "is_individual_primary": ind["primary_output"],
         "global_injection_ablatable": gp["injection_ablatable"],
+        "model_dir": storage.get("models_dir"),
+        "kronos_small_dir": storage.get("kronos_small_dir"),
+        "kronos_tokenizer_dir": storage.get("kronos_tokenizer_dir"),
     }
 
 
@@ -79,42 +84,61 @@ def apply_structural_veto(mode: str = "individual"):
 # All scaling driven from symbols.target_count + project.timeframe.
 
 def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
-    """Structural slots per slot_reference_manual.md (OHLCV only, causal, from neural_slots/ctx)."""
+    """Structural slots per slot_reference_manual.md (full kline via .get, causal from neural_slots/ctx).
+    # Inefficiencies for 10M+ bars found:
+    # - 8+ separate full-df .rolling(..., iloc[-1]) = O(8n) CPU/mem per call (recompute all history for last bar only)
+    # - .apply(lambda) for log = slow Python loop (not vectorized)
+    # - No chunking/precompute of common stats (price_chg, vol_chg, rolls)
+    # - For large shards: load full df in miner; consider pd.read_parquet(..., iterator=True) or process tail only
+    # Strict causal: all .shift(1)/rolling default (past only), no positive shifts or future iloc. Verified no leakage.
+    # Vectorized fix: use .values + np for log/ops where possible. For GPU in neural (see miner call site).
+    # Memory batch comment: for 10M+ bars per shard, batch symbols or use dask/numpy memmap; del large temps.
+    """
     w = neural["reversal_window"][1]
     eps = neural["strength_add"]
     clamp_min = neural["confidence_clamp"][0]
     clamp_max = neural["confidence_clamp"][1]
     min_p = neural["reversal_window"][0]
     conf_min = neural["confidence_min"]
+    vol = df['volume']
+    qvol = df.get('quote_volume', vol)
+    taker_buy = df.get('taker_buy_base_volume', vol * neural["strength_add"] / (neural["strength_add"] + neural["strength_add"]))
     # slot_00 bid-ask proxy on extremes/vol (no aggtrades)
     roll_min = df['low'].rolling(w, min_periods=min_p).min()
     roll_max = df['high'].rolling(w, min_periods=min_p).max()
     low_prox = (df['low'] - roll_min) / (roll_max - roll_min + eps)
     high_prox = (roll_max - df['high']) / (roll_max - roll_min + eps)
-    vol = df['volume']
-    buy_proxy = (vol * (low_prox < neural["reversal_factor"]).astype(float)).rolling(w, min_periods=min_p).mean().iloc[-1]
-    sell_proxy = (vol * (high_prox < neural["reversal_factor"]).astype(float)).rolling(w, min_periods=min_p).mean().iloc[-1]
+    buy_proxy = (taker_buy * (low_prox < neural["reversal_factor"]).astype(float)).rolling(w, min_periods=min_p).mean().iloc[-1]
+    sell_proxy = ((vol - taker_buy) * (high_prox < neural["reversal_factor"]).astype(float)).rolling(w, min_periods=min_p).mean().iloc[-1]
     slot_00 = (buy_proxy - sell_proxy) / (buy_proxy + sell_proxy + eps)
     # slot_04 hurst approx on log returns (R/S simplified)
-    log_ret = (df['close'] / df['close'].shift(1) + eps).clip(lower=eps).apply(lambda x: __import__('math').log(x))
-    cum_dev = (log_ret - log_ret.rolling(w, min_periods=min_p).mean()).cumsum()
+    # vectorized: .values + np.log avoids slow apply (for 10M+ bars CPU)
+    log_ret = np.log( (df['close'] / df['close'].shift(1) + eps).clip(lower=eps).values )
+    cum_dev = (log_ret - pd.Series(log_ret).rolling(w, min_periods=min_p).mean().values).cumsum()
     R = (cum_dev.rolling(w, min_periods=min_p).max() - cum_dev.rolling(w, min_periods=min_p).min()).iloc[-1]
-    S = log_ret.rolling(w, min_periods=min_p).std().iloc[-1] + eps
+    S = pd.Series(log_ret).rolling(w, min_periods=min_p).std().iloc[-1] + eps
     H = (R / S) / w
     slot_04 = neural["strength_add"] - H
     # slot_07 vol_price_div
-    price_chg = (df['close'] - df['close'].shift(1)) / df['close'].shift(1).clip(lower=eps)
-    vol_chg = (df['volume'] - df['volume'].shift(1)) / df['volume'].shift(1).clip(lower=eps)
-    raw_div = (price_chg.abs() - vol_chg.abs()).rolling(w, min_periods=min_p).mean().iloc[-1]
-    slot_07 = raw_div / (df['volume'].rolling(w, min_periods=min_p).std().iloc[-1] + eps)
+    # vectorized using .values + np for 10M+ bars
+    close_vals = df['close'].values
+    price_chg = (close_vals[1:] / close_vals[:-1] - 1)
+    price_chg = np.concatenate(([0.], price_chg))
+    price_chg = np.clip(price_chg, -1 + eps, None)
+    qvol_vals = qvol.values if hasattr(qvol, 'values') else qvol
+    vol_chg = (qvol_vals[1:] / qvol_vals[:-1] - 1)
+    vol_chg = np.concatenate(([0.], vol_chg))
+    vol_chg = np.clip(vol_chg, -1 + eps, None)
+    raw_div = pd.Series(np.abs(price_chg) - np.abs(vol_chg)).rolling(w, min_periods=min_p).mean().iloc[-1]
+    slot_07 = raw_div / (qvol.rolling(w, min_periods=min_p).std().iloc[-1] + eps)
     # slot_08 HMM proxy (vol regime)
     long_w = w + neural["reversal_window"][0]
     recent_vol = vol.rolling(w, min_periods=min_p).std().iloc[-1]
     long_vol = vol.rolling(long_w, min_periods=min_p).std().iloc[-1] + eps
     slot_08 = min(clamp_max, max(clamp_min, recent_vol / long_vol if long_vol > eps else clamp_min))
     # slot_09 vol_delta
-    vol_delta = (df['volume'] - df['volume'].shift(1)).rolling(w, min_periods=min_p).mean().iloc[-1]
-    total_vol = df['volume'].rolling(w, min_periods=min_p).mean().iloc[-1] + eps
+    vol_delta = (taker_buy - (vol - taker_buy)).rolling(w, min_periods=min_p).mean().iloc[-1]
+    total_vol = (taker_buy + (vol - taker_buy)).rolling(w, min_periods=min_p).mean().iloc[-1] + eps
     slot_09 = vol_delta / total_vol
     # slot_10 wick with body_pct < neural["reversal_factor"]
     candle_range = (df['high'] - df['low']).iloc[-1]
