@@ -1,0 +1,105 @@
+# KRONOS V1-ALT — Liquidity Tiering Configuration (Phase 0 Step 0.2)
+# Single source of truth for the 5-tier dynamic liquidity classifier.
+# All thresholds, weights, windows, and normalization references live here.
+# No magic numbers in the Python implementation.
+
+version: "0.2"
+lookback_default: 288          # Default rolling window (288h = 12 days). Override per call.
+min_data_density: 48           # Minimum valid bars required before trusting classification (fallback otherwise)
+fallback_tier: "medium"        # Safe default when data insufficient or errors occur
+
+# Composite score weights (must sum close to 1.0). Higher score => more liquid.
+metrics:
+  volume_weight: 0.38
+  amihud_weight: 0.26
+  trade_count_weight: 0.15
+  spread_weight: 0.13
+  zero_bar_weight: 0.08
+
+# Tier boundaries on the final liquidity score [0, 1]
+tier_thresholds:
+  very_high: 0.78
+  high: 0.58
+  medium: 0.32
+  low: 0.12
+  # score < low => micro
+
+# Absolute / veto guards (applied after score-based tiering for safety)
+absolute_guards:
+  enabled: true
+  very_high_min_24h_quote_volume: 45000000   # ~45M USDT median quote vol consideration for very_high
+  high_min_24h_quote_volume: 7000000         # ~7M for high
+  low_max_zero_bar_pct: 28                   # if zero-volume bars exceed this in window, cannot be better than 'low'
+  micro_max_zero_bar_pct: 45                 # force micro if extremely sparse
+
+# Normalization references (used for per-metric sub-scores in [0,1])
+# These are chosen for 1h USDT perps altcoin universe; adjust only via this file.
+normalization:
+  log_volume:
+    ref_low: 11.5     # ln( ~100k USDT )
+    ref_high: 19.5    # ln( ~290M USDT )
+  amihud:
+    ref_high: 2.5e-5  # illiquidity value considered "very bad"
+  spread:
+    ref_high: 0.018   # ~1.8% average (high-low)/close considered poor
+  trade_count:
+    ref_low: 80
+    ref_high: 8500
+
+# Spread proxy settings
+spread:
+  method: "high_low_ratio"   # high-low / close mean over window
+  proxy_mult: 1.0
+
+# Internal numerical stability (not user-facing bias parameters)
+numerical:
+  eps: 1e-12
+
+# Logging controls
+logging:
+  enabled: true
+  include_metrics_on_info: true   # When true, INFO logs contain full metric breakdown + reason
+
+# ─────────────────────────────────────────────────────────────────────
+# Bias Override Parameters (Phase 0 Step 0.3+)
+# All numeric configuration for individual bias points lives here.
+# The engine and point implementations load from this section.
+# No literals for these values are allowed in Python code.
+# ─────────────────────────────────────────────────────────────────────
+overrides:
+  point_01:
+    # Rolling Out-of-Sample Empirical Quantile Veto
+    quantile: 0.65
+    lookback_default: 100
+    lookback_min: 30
+    lookback_max: 400
+    min_data_density: 50
+    # When history insufficient, fall back to this conservative static threshold
+    fallback_static_threshold: 0.60
+    # Future: volatility scaling params (see Point 02)
+    # volatility_scaling:
+    #   enabled: false
+    #   gamma: 0.5
+
+  point_02:
+    # Rigid Feature Window Bias - Volatility-Scaled Lookback Adaptation
+    # W_t = round( W_base * (1 + sigma_rel,t ^ (-gamma)) )
+    gamma: 0.5
+    # Window for recent realized volatility (std of log returns)
+    vol_short_window: 20
+    # Reference for relative vol: "median" of rolling stds over this window, or a fixed length
+    vol_reference_window: 100
+    # Or use "median" for robust reference
+    vol_reference_method: "median"   # "median" | "mean" | fixed length
+    min_lookback: 20
+    max_lookback: 500
+    min_data_density: 30
+    # When vol cannot be computed reliably, fall back to base * this (1.0 = no change)
+    fallback_multiplier: 1.0
+    # Example default bases for key features (callers may pass their own base_window)
+    default_base_lookback: 100
+    # Specific bases mentioned in manual / params (for illustration / direct use)
+    vpin_base: 100
+    ofi_base: 50
+    amihud_base: 50
+    slot15_history_base: 100

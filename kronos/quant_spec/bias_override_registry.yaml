@@ -1,0 +1,1822 @@
+bias_overrides:
+# Group 1: Parameter & Threshold Heuristics (Points 1–15)
+- point_id: "01"
+  title: "Hardcoded Alpha Threshold Bias"
+  group: 1
+  description: "Setting a static cutoff for reversal confidence as a veto gate assumes stationary volatility and confidence regimes across all assets."
+  manual_bias: "Setting a static cutoff reversal_confidence_min: 0.72 as a veto gate (Slot 15) assumes a stationary volatility and confidence regime across all assets."
+  quant_replacement: "Rolling Out-of-Sample Empirical Quantile Veto. Calculate threshold dynamically using rolling quantile of slot_15 over window W: T_t = Quantile({slot_15}_tau, q=0.65) for tau=t-W. Veto if slot_15 < T_t."
+  status: "implemented"   # Phase 0 Step 0.3 — first real bias override activated after validation
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use static quantile threshold with conservative buffer (e.g. 0.65 quantile of historical slot_15)"
+  implementation_file: "kronos/quant_spec/overrides/point_01.py"
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Core veto gate for reversal signatures; high impact on signal quality across liquidity levels. Dynamic T_t via rolling quantile of slot_15 (out-of-sample). Engine-routed. See scripts/validate_point_01.py and point_01.py __main__."
+
+- point_id: "02"
+  title: "Rigid Feature Window Bias"
+  group: 1
+  description: "Arbitrarily fixing indicator windows forces temporal scaling constraints onto microstructural dynamics that vary by asset and regime."
+  manual_bias: "Arbitrarily fixing indicator windows (e.g., vpin_window: 100, ofi_window: 50) forces temporal scaling constraints onto microstructural dynamics."
+  quant_replacement: "Volatility-Scaled Lookback Adaptation. Set dynamic lookbacks scaling with relative volatility: W_t = round(W_base * (1 + sigma_rel,t ^ -gamma))."
+  status: "implemented"   # Phase 0 — volatility-scaled lookback (Point 02)
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use base window with volatility buffer; fall back to fixed window on low data density."
+  implementation_file: "kronos/quant_spec/overrides/point_02.py"
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects all rolling features; prioritize for high impact on low-liquidity assets. Provides get_volatility_scaled_window + helpers (slot15_history, vpin, ofi). See scripts/validate_point_02.py. Synergizes with Point 01 slot15 history lookback."
+
+- point_id: "03"
+  title: "Spatial Dimension Inflation Bias"
+  group: 1
+  description: "Replicating a single scalar neural conviction across 8 dimensions distorts spatial Euclidean distances in HDBSCAN clustering."
+  manual_bias: "Replicating a single scalar neural_conv across 8 dimensions (slot_16 to slot_23) distorts spatial Euclidean distances in HDBSCAN clustering."
+  quant_replacement: "SVD-Based Orthogonal Bottleneck Compression. Compress the vector down to its true mathematical rank before clustering: X = X W_ortho L."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use scalar neural_conv with added small noise; fall back to replication on low data."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: ["16"]
+  notes: "Directly impacts DNA vector and clustering quality."
+
+- point_id: "04"
+  title: "Manual Linear Multiplier Bias"
+  group: 1
+  description: "Using arbitrary multipliers assumes linear pricing relationships that do not hold across regimes or assets."
+  manual_bias: "Using arbitrary multipliers (e.g., reversal_base_strength_multiplier: 4.2, wick_ratio_mult: 1.5) assumes linear pricing relationships."
+  quant_replacement: "Rolling Percentile Rank Transform. Transform multipliers through a rolling percentile rank transform: Rank(X_t) = sum I[X_tau <= X_t] / W for tau=t-W."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use fixed conservative multiplier with rank clipping."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Affects multiple strength and scaling factors."
+
+- point_id: "05"
+  title: "Calendar-Time Rigidity Bias"
+  group: 1
+  description: "Sampling data strictly on chronological boundaries treats active liquidation hours and dead Asian sessions identically."
+  manual_bias: "Sampling data strictly on chronological boundaries (timeframe: \"1h\") treats active liquidation hours and dead Asian sessions identically."
+  quant_replacement: "Synthetic Quote Volume-Imbalance Aggregation. Recalculate features over dynamic windows required to clear rolling volume density targets: W_t = min {k | sum Q_{t-i} >= median({Q_tau})}."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use fixed 1h bars with volume filter."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Impacts all time-based features; high value for global altcoin universe."
+
+- point_id: "06"
+  title: "Discrete Liquidity Filtering Bias"
+  group: 1
+  description: "Hard-filtering assets via binary bounds ignores continuous changes in transaction friction."
+  manual_bias: "Hard-filtering assets via binary bounds (min_24h_volume_usd: 1000000) ignores continuous changes in transaction friction."
+  quant_replacement: "Continuous Amihud Decay Adjuster. Calculate rolling execution friction and penalize signal weights continuously: Illiq = sum |ln(C/O)| / (24*Q + eps); w = e ^ (-lambda * Illiq)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Hard filter at very low volume; decay otherwise."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Critical for 530+ altcoin universe with varying liquidity."
+
+- point_id: "07"
+  title: "Arbitrary Formula Assembly Bias"
+  group: 1
+  description: "Manually defining structural-neural combinations imposes unverified mathematical shapes."
+  manual_bias: "Manually defining structural-neural combinations like slot_29 = slot15 * neural_conv / (strength_add + slot15) imposes unverified mathematical shapes."
+  quant_replacement: "GP-Evolved Parsimonious Polynomial Mapping. Use Symbolic Regression to evolve the optimal predictive function mapped to a dynamic target Y: f(X)_GP s.t. min[MSE + alpha * AIC(f)]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "high"
+  min_data_density: 500
+  fallback_strategy: "Use simple linear or ratio combination with conservative coefficients."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: ["03"]
+  notes: "High compute; good candidate for later phase."
+
+- point_id: "08"
+  title: "Hardcoded Lookback Scaling Ratios"
+  group: 1
+  description: "Binding minimum and maximum windows using a flat constant assumes uniform, static cycle scales."
+  manual_bias: "Binding minimum and maximum windows using a flat constant (reversal_window_factor: 0.3) assumes uniform, static cycle scales."
+  quant_replacement: "Empirical Mode Decomposition Wavelet Alignment. Isolate the highest-amplitude Intrinsic Mode Function (IMF) wavelength to drive sessional windows dynamically: W_adaptive,t = round(alpha * Lambda_t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed factor with volatility adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects windowed features across the board."
+
+- point_id: "09"
+  title: "Static Percentage Threshold Bias"
+  group: 1
+  description: "Defining key level bounds using a static percentage threshold fails to adjust for structural volatility variations of high-beta tokens."
+  manual_bias: "Defining key level bounds using a static percentage threshold (bandwidth: 0.5%) fails to adjust for the structural volatility variations of high-beta tokens."
+  quant_replacement: "ATR-Weighted Volatility Bandwidths. Scale boundaries using a dynamic Average True Range Multiple: Bandwidth = (sum (H-L)) * kappa / W."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use fixed bandwidth with ATR buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Impacts S/R and key level features."
+
+- point_id: "10"
+  title: "Sessional Latency Bias"
+  group: 1
+  description: "Restricting execution pipelines using a static calendar buffer to guarantee data settlement ignores actual system latencies."
+  manual_bias: "Restricting execution pipelines using a static calendar buffer (end_date_offset_days: 1) to guarantee data settlement."
+  quant_replacement: "Systemic Timestamp Latency Truncation. Truncate calculations based on actual elapsed millisecond offsets: Truncate = I[SystemTime - CT >= tau_measured_latency]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use conservative fixed buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Affects data freshness and settlement logic."
+
+- point_id: "11"
+  title: "Arbitrary EWM Smoothing Span Bias"
+  group: 1
+  description: "Smoothing feature inputs over temporal spans treats zero-volume periods with identical decay to liquidation bars."
+  manual_bias: "Smoothing feature inputs over temporal spans (e.g., lookback * decay) treats zero-volume periods with identical decay to liquidation bars."
+  quant_replacement: "Volume-Synchronized Exponential Smoothing (VSES). Scale the smoothing factor directly by relative volume: alpha_t = alpha_base * (Q_t / Mean(Q)[t-W:t])."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use volume-weighted EWM with fixed base."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects all smoothed features."
+
+- point_id: "12"
+  title: "Binary Volatility Regime Boundaries"
+  group: 1
+  description: "Splitting volatility states using binary parameters forces continuous state transitions into artificial categorical bins."
+  manual_bias: "Splitting volatility states using binary parameters (e.g., ADX > 50) forces continuous state transitions into artificial categorical bins."
+  quant_replacement: "Continuous Variance Mixture Z-Scores. Track the rolling Z-score of variance ratios across short and long lookbacks: Vol_Z = (sigma_short^2 - mu) / sigma_long."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use binary with hysteresis buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Affects regime-dependent features."
+
+- point_id: "13"
+  title: "Fixed Order Flow Proxy Splits"
+  group: 1
+  description: "Assuming buy and sell volumes are split symmetrically ignores order execution velocity and concentration."
+  manual_bias: "Fixed Order Flow Proxy Splits: Assuming buy and sell volumes are split symmetrically by vs. ignores order execution velocity and concentration."
+  quant_replacement: "Trade-Intensity Weighted Imbalance. Scale the volume imbalance by average trade size metrics: OFI = (TBV - (V - TBV)) * ln(V / Count + eps)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use symmetric split with conservative scaling."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Critical for order flow features."
+
+- point_id: "14"
+  title: "Hardcoded Denominator Epsilon Guards"
+  group: 1
+  description: "Injecting a uniform constant to prevent division-by-zero errors distorts scale metrics on low-nominal-priced tokens."
+  manual_bias: "Injecting a uniform constant (eps) to prevent division-by-zero errors distorts scale metrics on low-nominal-priced tokens."
+  quant_replacement: "Numerical Standard Deviation Precision Scale. Dynamically scale epsilons relative to the moving variance of the target denominator: eps_t = sigma(X[t-W:t]) * 1e-7."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use small fixed eps with variance floor."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Affects all normalized features."
+
+- point_id: "15"
+  title: "Symmetric Path-Risk Target Boundaries"
+  group: 1
+  description: "Applying symmetrical stop-loss and take-profit bounds across all market regimes ignores real-world return skewness."
+  manual_bias: "Applying symmetrical stop-loss and take-profit bounds across all market regimes ignoring real-world return skewness."
+  quant_replacement: "Skewness-Weighted Asymmetric Barriers. Skew upper and lower barriers relative to third-moment return parameters: Barrier_upper = phi * sigma_t * (1 + gamma_skew,t) and Barrier_lower = -phi * sigma_t * (1 - gamma_skew,t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use symmetric barriers with conservative multiplier."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Impacts execution and risk management."
+
+# Group 2: Microstructure & Order Flow Proxies (Points 16–30)
+- point_id: "16"
+  title: "Volume-at-Price Fixed Discretization Bias"
+  group: 2
+  description: "Segmenting volume profiles into fixed price buckets creates boundary errors when assets experience rapid, wide price expansions."
+  manual_bias: "Segmenting volume profiles into fixed price buckets creates boundary errors when assets experience rapid, wide price expansions."
+  quant_replacement: "Gaussian Kernel Density Estimation (KDE) Volume Profiling. Calculate continuous volume density over price levels: exp f(P) = sum V_i * exp( - (P - C_i)^2 / (N * h^2) )."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use fixed buckets with adaptive bin width."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects volume profile and S/R features."
+
+- point_id: "17"
+  title: "Constant Spread Assumptions"
+  group: 2
+  description: "Assuming zero execution spread or static execution fees across all altcoins ignores highly volatile microstructural slippage."
+  manual_bias: "Assuming zero execution spread or static execution fees across all altcoins ignores highly volatile microstructural slippage."
+  quant_replacement: "Corwin-Schultz High-Low Range Spread Estimator. Estimate continuous spread dynamically from adjacent bars: gamma = [ln(H_t / L_t)]^2 + [ln(H_{t+1} / L_{t+1})]^2 ; Spread = 2*(e^gamma -1) / (1+e^gamma)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use fixed conservative spread assumption."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Direct impact on execution cost modeling."
+
+- point_id: "18"
+  title: "Linear Volume Impact Scaling"
+  group: 2
+  description: "Linear volume impact scaling ignores capitalization scales across the 530 tokens."
+  manual_bias: "Linear Volume Impact Scaling: capitalization scales across the 530 tokens."
+  quant_replacement: "Logarithmic Volume Z-Score Normalization. Scale the volume series using rolling log-transformed distributions: V = (ln(Q_t) - mu_ln(Q)) / sigma_ln(Q)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use log volume with fixed z-score buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects volume-based features for micro caps."
+
+- point_id: "19"
+  title: "Static Wick Prominence Scaling"
+  group: 2
+  description: "Scoring doji and wick exhaustion metrics via a manual multiplication constant inside Slot 10."
+  manual_bias: "Static Wick Prominence Scaling: Scoring doji and wick exhaustion metrics via a manual multiplication constant (wick_ratio_mult: 1.5) inside Slot 10."
+  quant_replacement: "Rolling Non-Parametric Beta-CDF Mapping. Scale wick ratios dynamically by mapping them to empirical beta parameter shapes: Wick_Exh_t = Beta_CDF ( (H_t - max(O_t,C_t) + min(O_t,C_t) - L_t) / (H_t - L_t + eps) ; alpha, beta )."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use fixed wick_mult with conservative value."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Directly upgrades Slot 10."
+
+- point_id: "20"
+  title: "Trade-Count Uniform Weighting"
+  group: 2
+  description: "Treating raw trade count as a stationary linear variable, ignoring institutional algorithmic slicing and retail concentration."
+  manual_bias: "Trade-Count Uniform Weighting: Treating raw trade count (Count_t) as a stationary linear variable, ignoring institutional algorithmic slicing and retail concentration."
+  quant_replacement: "Normalized Shannon Count Entropy. Measure trade density concentration relative to the volume profile: Entropy_t = - sum (V_i / (Count_t + eps)) * ln(V_i / (Count_t + eps))."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use raw count normalized by median."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Affects order flow and volume features."
+
+- point_id: "21"
+  title: "Order Book Depth Ignorance"
+  group: 2
+  description: "Discarding the predictive signals of localized limit-order interactions because standard kline feeds lack depth metrics."
+  manual_bias: "Order Book Depth Ignorance: Discarding the predictive signals of localized limit-order interactions because standard kline feeds lack depth metrics."
+  quant_replacement: "Amihud Illiquidity Volume Impact Proxy. Reconstruct a real-time price impact indicator: lambda_t = sum |ln(C_{t-i}/O_{t-i})| / sum Q_{t-i} ; w = e ^ (-lambda * Illiq)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use volume as proxy for depth."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Important for low-liquidity impact modeling."
+
+- point_id: "22"
+  title: "Linear Bid-Ask Absorption Scaling"
+  group: 2
+  description: "Slot 00 absorption formulas evaluate volume at extremes symmetrically, ignoring the unequal force of aggressive buy/sell actions during trend runs."
+  manual_bias: "Linear Bid-Ask Absorption Scaling: Slot 00 absorption formulas evaluate volume at extremes symmetrically, ignoring the unequal force of aggressive buy/sell actions during trend runs."
+  quant_replacement: "Spread-Weighted Directional Delta Absorption. Scale buying and selling volumes based on local closing locations: Absorp_t = TBV_t * (C_t - L_t) - (V_t - TBV_t) * (H_t - C_t) / ( (H_t - L_t + eps) * V_t )."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use symmetric absorption with conservative scaling."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Upgrades Slot 00 absorption."
+
+- point_id: "23"
+  title: "Equal-Weighted Divergence Indices"
+  group: 2
+  description: "Combining price and volume acceleration inside Slot 07 with a static weight constant."
+  manual_bias: "Equal-Weighted Divergence Indices: Combining price and volume acceleration inside Slot 07 with a static weight constant (divergence_weight: 1.0)."
+  quant_replacement: "Eigenvalue-Driven Covariance Weighting. Perform rolling PCA on return and volume acceleration and scale weights dynamically: w_div,t = lambda_PC1,t / (lambda_PC1,t + lambda_PC2,t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use fixed weight with validation."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Upgrades Slot 07."
+
+- point_id: "24"
+  title: "Linear Order Flow Imbalance Persistence"
+  group: 2
+  description: "Modeling Order Flow Imbalance (OFI) as a stationary, memoryless series."
+  manual_bias: "Linear Order Flow Imbalance Persistence: Modeling Order Flow Imbalance (OFI) as a stationary, memoryless series."
+  quant_replacement: "Fractionally Differenced Order Flow Imbalance (FDOFI). Fractionally difference the OFI series using expansion weights to preserve long-memory features while maintaining stationarity: OFI_t ^ (d) = sum_{k=0}^infty (-1)^k * binom(d,k) * OFI_{t-k}."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use simple OFI with exponential smoothing."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Preserves long-memory in order flow."
+
+- point_id: "25"
+  title: "Static S/R Memory Decay Parameters"
+  group: 2
+  description: "Applying a flat exponential decay factor to all support and resistance lines regardless of execution velocity."
+  manual_bias: "Static S/R Memory Decay Parameters: Applying a flat exponential decay factor (proximity_decay: 0.95) to all support and resistance lines regardless of execution velocity."
+  quant_replacement: "Information-Entropy Adaptive Memory Half-Life. Accelerate decay during high-entropy, hyper-active regimes: lambda_t = lambda_base * [1 - Entropy({Count}_tau) for tau=t-24]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use fixed decay with volatility multiplier."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects S/R and key level proximity."
+
+- point_id: "26"
+  title: "Discrete State Transitions for Key Level Proximity"
+  group: 2
+  description: "Calculating distances to support and resistance levels using discrete threshold steps."
+  manual_bias: "Discrete State Transitions for Key Level Proximity: Calculating distances to support and resistance levels using discrete threshold steps."
+  quant_replacement: "Continuous Cauchy Proximity Kernels. Map the physical distance to the nearest key level via a smooth, non-linear Cauchy density function: f(d_t) = 1 / (pi * gamma * (1 + (d_t / gamma)^2))."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use linear distance with threshold."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Improves S/R feature continuity."
+
+- point_id: "27"
+  title: "Symmetrical Order Flow Pressure Assumptions"
+  group: 2
+  description: "Short liquidations have equal microstructural patterns (assumes symmetry in buy/sell pressure)."
+  manual_bias: "Symmetrical Order Flow Pressure Assumptions: short liquidations have equal microstructural patterns."
+  quant_replacement: "Causal Semivariance Directional Scaling. Scale the denominator of the VPIN proxy relative to downside variance: sigma_down,t ^2 = sum min(0, ln(C_{t-i}/C_{t-i-1})) / W."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use symmetric VPIN with conservative downside buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Upgrades VPIN and order flow asymmetry."
+
+- point_id: "28"
+  title: "Standard Volume Profile Horizon Rigidity"
+  group: 2
+  description: "Evaluating volume-at-price over a hardcoded lookback interval across all assets."
+  manual_bias: "Standard Volume Profile Horizon Rigidity: Evaluating volume-at-price over a hardcoded lookback interval (e.g., 288 bars) across all assets."
+  quant_replacement: "Hurst-Adaptive Profile Lifespans. Expand or contract the volume profile accumulation window dynamically using the fractal dimension: Profile_Lookback_t = round(Lookback_base * (1.5 - H_t))."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use fixed horizon with Hurst adjustment fallback."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: ["04"]
+  notes: "Affects volume profile features."
+
+- point_id: "29"
+  title: "Linear Trend Exhaustion Approximations"
+  group: 2
+  description: "Extrapolating trend exhaustion by comparing point-to-point price ranges linearly."
+  manual_bias: "Linear Trend Exhaustion Approximations: Extrapolating trend exhaustion by comparing point-to-point price ranges linearily."
+  quant_replacement: "Non-Parametric Kendall's Tau Trend-Strength Scaling. Measure rank correlation over a rolling window to isolate exhaustion: tau = 2 / (W*(W-1)) * sum sign(C_i - C_j) * sign(i - j) for i<j."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use linear range comparison with rank filter."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Improves trend exhaustion signals."
+
+- point_id: "30"
+  title: "Microstructure Noise Blindness"
+  group: 2
+  description: "Ignoring sub-bar transactional noise in close-to-close returns when building structural features."
+  manual_bias: "Microstructure Noise Blindness: Ignoring sub-bar transactional noise in close-to-close returns when building structural features."
+  quant_replacement: "Bar-Level Realized Kernel Microstructure Estimator. Estimate local noise scales by incorporating open, high, low, and trade counts: eta_t = (H_t - L_t) / (Count_t * C_t + eps)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use close-to-close with noise floor."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures intra-bar noise for better features."
+
+# Group 3: Time, Bar & Information Sampling (Points 31–45)
+- point_id: "31"
+  title: "Chronological Sampling Dependency"
+  group: 3
+  description: "Assuming chronological 1-hour bar intervals capture uniform information chunks."
+  manual_bias: "Chronological Sampling Dependency: Assuming chronological 1-hour bar intervals capture uniform information chunks."
+  quant_replacement: "Entropy-Weighted Information Bars. Interpolate kline metrics to reconstruct synthetic bars that trigger only when cumulative information entropy crosses a specified target: sum H(X_i) >= H_threshold."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed 1h bars with entropy filter."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Fundamental change to bar construction."
+
+- point_id: "32"
+  title: "Fixed Sessional Annualization Scales"
+  group: 3
+  description: "Hardcoding exact sessional parameters to annualize volatility and compute Sharpe metrics."
+  manual_bias: "Fixed Sessional Annualization Scales: Hardcoding exact sessional parameters (days_per_year: 365) to annualize volatility and compute Sharpe metrics."
+  quant_replacement: "Dynamic Empirical Observation Sampling Rate (EOSR). Compute the scaling multiplier using raw database timestamps: psi = N_observed / (31,536,000,000 / sample_rate) ; sigma_annual = sigma * psi."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use fixed 365 with market-specific adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Affects all annualized risk metrics."
+
+- point_id: "33"
+  title: "Absolute Genesis Boundary Tracking"
+  group: 3
+  description: "Enforcing genesis_lookback_years imports un-reconstructible, illiquid historical states into present models."
+  manual_bias: "Absolute Genesis Boundary Tracking: Enforcing genesis_lookback_years: 6 imports un-reconstructible, illiquid historical states into present models."
+  quant_replacement: "Cumulative Volume-Density Genesis Thresholding. Define the start of the training set where cumulative transactions reach a structural baseline density: genesis = min { t | sum CT_{t-i} >= baseline }."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use conservative fixed lookback with volume gate."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Prevents illiquid history contamination."
+
+- point_id: "34"
+  title: "Static Prediction Target Horizons"
+  group: 3
+  description: "Prediction targets are hardcoded to a fixed offset, assuming alpha decay times are uniform."
+  manual_bias: "Static Prediction Target Horizons: Prediction targets are hardcoded to a fixed offset (forecast_horizon: 4), assuming alpha decay times are uniform."
+  quant_replacement: "VPIN-Synchronized Dynamic Forecast Horizons. Scale targets relative to volume turnover speeds: Horizon_t = min { k | sum V_{t+i} >= mu_V * phi }."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use fixed horizon with volume scaling fallback."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Affects prediction targets and labeling."
+
+- point_id: "35"
+  title: "Overlapping Target Labeling Leakage"
+  group: 3
+  description: "Labeling overlapping look-forward sequences introduces severe autocorrelation in downstream training features."
+  manual_bias: "Overlapping Target Labeling Leakage: Labeling overlapping look-forward sequences introduces severe autocorrelation in downstream training features."
+  quant_replacement: "Strict Combinatorial Purging & Embargoing. Programmatically eliminate training samples whose labels overlap with validation windows: Purge_Boundary = t_event + Horizon + Embargo_Window."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use non-overlapping blocks with embargo."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Critical for unbiased model training."
+
+- point_id: "36"
+  title: "Symmetric Missing Data Imputation"
+  group: 3
+  description: "Symmetric missing data imputation artificially deflates computed volatility."
+  manual_bias: "Symmetric Missing Data Imputation: artifically deflates computed volatility."
+  quant_replacement: "Ornstein-Uhlenbeck Volatility-Preserving Stochastic Bridging. Impute gaps using mean-reverting stochastic processes: dx_t = theta (mu - x_t) dt + sigma_t dW_t."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 100
+  fallback_strategy: "Forward fill with volatility adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Preserves volatility structure in gaps."
+
+- point_id: "37"
+  title: "Unweighted Timestamp Alignment"
+  group: 3
+  description: "Assuming that exchange timestamps are perfectly synchronized with structural execution times."
+  manual_bias: "Unweighted Timestamp Alignment: Assuming that exchange timestamps are perfectly synchronized with structural execution times."
+  quant_replacement: "Causal Latency Outlier Filtering. Exclude any kline from the feature generator where the exchange timestamp gap exceeds critical bounds: DeltaTS_t = CT_t - TS_t >= Quantile({DeltaTS}, q=0.99)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Fixed latency buffer with outlier clip."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Critical for execution timing accuracy."
+
+- point_id: "38"
+  title: "Standard Moving Average Temporal Lag Bias"
+  group: 3
+  description: "Using standard rolling averages introduces structural lag, causing the feature engine to miss turning points."
+  manual_bias: "Standard Moving Average Temporal Lag Bias: Using standard rolling averages introduces structural lag, causing the feature engine to miss turning points."
+  quant_replacement: "Zero-Lag Hull Moving Average (HMA). Eliminate lag by utilizing weighted moving average differentials: HMA_t = WMA(2 * WMA(C, W/2) - WMA(C, W), W)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use EMA with reduced lag."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Reduces lag in trend features."
+
+- point_id: "39"
+  title: "Rigid Sessional Periodicity Mapping"
+  group: 3
+  description: "Relying on standard week and day multipliers to scale seasonal indicators assumes stationary structural cycles."
+  manual_bias: "Rigid Sessional Periodicity Mapping: Relying on standard week and day multipliers to scale seasonal indicators assumes stationary structural cycles."
+  quant_replacement: "Discrete Fourier Transform (DFT) Dominant Cycle Extraction. Identify the dominant seasonal frequency components from the volume power spectrum dynamically: P(f) = |F(V)|^2 ; Period = argmax_f (P(f))."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed sessional multipliers with spectrum check."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Captures asset-specific seasonality."
+
+- point_id: "40"
+  title: "Linear Rescaling of Incomplete Bars"
+  group: 3
+  description: "Linearly extrapolating metrics for incomplete active candles assumes flat execution density."
+  manual_bias: "Linear Rescaling of Incomplete Bars: Linearily extrapolating metrics for incomplete active candles (e.g., multiplying current volume by the remaining time fraction) assumes flat execution density."
+  quant_replacement: "Causal Intra-Bar Volume Density Weighting. Scale active bar metrics using historical intra-bar transaction curves: V_projected,t = V_t * CDF_time (Delta_t_elapsed)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Linear with conservative density assumption."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Improves intra-bar feature accuracy."
+
+- point_id: "41"
+  title: "Fixed Lookback Phase Shift Assumptions"
+  group: 3
+  description: "Fixed lookback phase shift assumptions mismatches across different tokens."
+  manual_bias: "Fixed Lookback Phase Shift Assumptions: mismatches across different tokens."
+  quant_replacement: "Dynamic Time Warping (DTW) Metric Alignment. Align temporal series of target assets dynamically to establish structurally matching phase scales: min sum d(x_p, y_q) over warping path."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "high"
+  min_data_density: 300
+  fallback_strategy: "Fixed phase shift with DTW validation."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "High compute; useful for multi-asset alignment."
+
+- point_id: "42"
+  title: "Uniform High-Low Range Truncation"
+  group: 3
+  description: "Treating the range as stationary across all asset classes, ignoring nominal scale distortions."
+  manual_bias: "Uniform High-Low Range Truncation: Treating the range as stationary across all asset classes, ignoring nominal scale distortions."
+  quant_replacement: "Variance-Stabilized Normalized Range Estimator. Convert raw high-low metrics to units of standard deviation: R_t = (H_t - L_t) / (sigma_rolling,t * Delta_t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use raw range with volatility normalization fallback."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Normalizes range across price scales."
+
+- point_id: "43"
+  title: "Multi-Timeframe Integration Redundancy"
+  group: 3
+  description: "Combining features across multiple timeframes with linear joins introduces massive collinearity."
+  manual_bias: "Multi-Timeframe Integration Redundancy: Combining features across multiple timeframes (e.g., 1h, 4h, 1d) with linear joins introduces massive collinearity."
+  quant_replacement: "Multiresolution Wavelet Decomposition. Extract orthogonal features across multiple scales using a Haar wavelet: psi_j,k (t) = 2^{j/2} psi(2^j t - k)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed multi-timeframe with correlation pruning."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Reduces collinearity in multi-TF features."
+
+- point_id: "44"
+  title: "Equal-Weighted Aggregations over Unbalanced Spans"
+  group: 3
+  description: "Computing multi-day rolling metrics with unweighted parameters ignores changing information densities."
+  manual_bias: "Equal-Weighted Aggregations over Unbalanced Spans: Computing multi-day rolling metrics with unweighted parameters ignores changing information densities."
+  quant_replacement: "Information-Weighted Rolling Operators. Weight observations dynamically by their localized Shannon Entropy: theta_t = sum theta_i * H(X_{t-i}) / sum H(X_{t-i})."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use equal weight with entropy gate."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Improves multi-period aggregations."
+
+- point_id: "45"
+  title: "Symmetric Volume-Price Drift Adjustments"
+  group: 3
+  description: "Assuming price changes and volume drift are symmetrically distributed over time."
+  manual_bias: "Symmetric Volume-Price Drift Adjustments: Assuming price changes and volume drift are symmetrically distributed over time."
+  quant_replacement: "Asymmetric Copula-Based Dependent Transforms. Model the non-linear dependency between returns and volume using a Gumbel Copula to capture extreme tail relationships."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use linear correlation with tail adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Captures asymmetric dependencies."
+
+# Group 4: Advanced Non-Stationary Volatility Estimators (Points 46–60)
+- point_id: "46"
+  title: "Close-Only Volatility Calculation Bias"
+  group: 4
+  description: "Calculating volatility using closing prices ignores intra-hour extreme price paths."
+  manual_bias: "Calculating volatility using closing prices ignores intra-hour extreme price paths."
+  quant_replacement: "Yang-Zhang Non-Stationary Volatility Estimator. Combine overnight, open-to-close, and Rogers-Satchell range estimators: sigma_YZ^2 = sigma_overnight^2 + k * sigma_open_to_close^2 + (1-k) * sigma_RS^2."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use close-to-close with Parkinson adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Standard upgrade for volatility estimators."
+
+- point_id: "47"
+  title: "Drift-Free Volatility Assumptions"
+  group: 4
+  description: "Standard deviation calculations assume a zero-drift regime, which biases volatility metrics downward during strong trends."
+  manual_bias: "Drift-Free Volatility Assumptions: Standard deviation calculations assume a zero-drift regime, which biases volatility metrics downward during strong trends."
+  quant_replacement: "Rogers-Satchell Volatility Estimator. Incorporate systematic price drift parameters into range evaluations: sigma_RS^2 = 1/W * sum [ln(H_i/O_i) * ln(H_i/C_i) + ln(L_i/O_i) * ln(L_i/C_i)]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use close-to-close with drift correction."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Corrects for trend bias in volatility."
+
+- point_id: "48"
+  title: "Linear Volatility Outlier Sensitivity"
+  group: 4
+  description: "Standard standard deviation metrics are highly sensitive to single extreme liquidation outliers, which artificially inflates subsequent volatility memory."
+  manual_bias: "Linear Volatility Outlier Sensitivity: Standard standard deviation metrics are highly sensitive to single extreme liquidation outliers, which artificially inflates subsequent volatility memory."
+  quant_replacement: "Rolling Median Absolute Deviation (MAD). Compute a robust, outlier-proof scale metric: MAD_t = 1.4826 * median( |r_i - median(r)| ) for i=t-W to t."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use std with winsorization."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Robust to liquidation spikes."
+
+- point_id: "49"
+  title: "Overnight Gap Blindness"
+  group: 4
+  description: "Classical range estimators (e.g., Parkinson) ignore price gaps occurring between adjacent sessional candles."
+  manual_bias: "Overnight Gap Blindness: Classical range estimators (e.g., Parkinson) ignore price gaps occurring between adjacent sessional candles."
+  quant_replacement: "Garman-Klass Volatility Estimator with Overnight Corrections. Estimate volatility incorporating opening jumps: sigma_GK^2 = 1/W * sum [a * (ln(O_i/C_{i-1}))^2 + (1-a) * (0.5*(ln(H_i/L_i))^2 - (2*ln(2)-1)*(ln(C_i/O_i))^2 ) ]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use Parkinson with gap adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Accounts for overnight gaps."
+
+- point_id: "50"
+  title: "Micro-Crash Ignorance"
+  group: 4
+  description: "Simple volatility metrics miss sudden, sub-bar flash liquidations that quickly pull back before the hourly close."
+  manual_bias: "Micro-Crash Ignorance: Simple volatility metrics miss sudden, sub-bar flash liquidations that quickly pull back before the hourly close."
+  quant_replacement: "High-Low Range Parkinson Estimator. Track intra-bar extremes directly to capture extreme tail deviations: sigma_P^2 = 1/(4*W*ln(2)) * sum (ln(H_i/L_i))^2."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use close-to-close with range filter."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures intra-bar extremes."
+
+- point_id: "51"
+  title: "Volatility Clustering Feedback Ignorance"
+  group: 4
+  description: "Modeling volatility as an independent, memoryless process."
+  manual_bias: "Volatility Clustering Feedback Ignorance: Modeling volatility as an independent, memoryless process."
+  quant_replacement: "Empirical GARCH(1,1) Volatility Tracker. Reconstruct conditional variance feedback loops dynamically: sigma_t^2 = omega + alpha * r_{t-1}^2 + beta * sigma_{t-1}^2."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use EWMA with fixed decay."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures volatility clustering."
+
+- point_id: "52"
+  title: "Real-World Volatility Skewness Blindness"
+  group: 4
+  description: "Assuming upside volatility and downside volatility carry equal risk."
+  manual_bias: "Real-World Volatility Skewness Blindness: Assuming upside volatility and downside volatility carry equal risk."
+  quant_replacement: "Causal Downside Semi-Volatility Estimator. Track variance calculated exclusively over negative log-returns: sigma_down,t^2 = 1/W * sum min(0, ln(C_{t-i}/C_{t-i-1})) for i=0 to W."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use full volatility with downside emphasis."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Focuses on downside risk."
+
+- point_id: "53"
+  title: "Relative Spread-Volume Volatility Distortions"
+  group: 4
+  description: "Assuming price volatility scales uniformly across both illiquid altcoins and blue-chip tokens."
+  manual_bias: "Relative Spread-Volume Volatility Distortions: Assuming price volatility scales uniformly across both illiquid altcoins and blue-chip tokens."
+  quant_replacement: "Amihud-Adjusted Realized Volatility. Scale volatility directly by relative transaction friction: sigma_t = sigma_rolling,t * e ^ (lambda * Illiq_t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use raw volatility with Amihud floor."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Adjusts for liquidity in volatility."
+
+- point_id: "54"
+  title: "Homoskedastic Multi-Asset Volatility Matrices"
+  group: 4
+  description: "Calculating covariance matrices under flat homoskedastic assumptions ignores volatility spillovers across assets."
+  manual_bias: "Homoskedastic Multi-Asset Volatility Matrices: Calculating covariance matrices under flat homoskedastic assumptions ignores volatility spillovers across assets."
+  quant_replacement: "Dynamic Conditional Correlation (DCC-GARCH). Model the time-varying correlation matrix of returns dynamically: H_t = D_t R_t D_t."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use rolling correlation with shrinkage."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Captures time-varying correlations."
+
+- point_id: "55"
+  title: "Temporal Volatility Resolution Loss"
+  group: 4
+  description: "Measuring volatility using only the standard deviation of low-frequency close prices."
+  manual_bias: "Temporal Volatility Resolution Loss: Measuring volatility using only the standard deviation of low-frequency close prices."
+  quant_replacement: "Integrated Variance via High-Frequency Counts. Reconstruct local realized variance using sessional volume and transaction intensities: RV_t = sum (ln(C_i/O_i))^2 * (C_i / Q_i + eps)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use close-to-close with range adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Uses high-frequency proxies for variance."
+
+- point_id: "56"
+  title: "High-Beta Volatility Spillover Contamination"
+  group: 4
+  description: "Local token volatility metrics are highly contaminated by major market swings (BTC beta moves)."
+  manual_bias: "High-Beta Volatility Spillover Contamination: Local token volatility metrics are highly contaminated by major market swings (BTC beta moves)."
+  quant_replacement: "Beta-Neutralized Residual Volatility Estimator. Strip out market-beta variance to isolate authentic local asset volatility: r_i,t = alpha + beta_i * r_m,t + epsilon ; sigma_residual,i,t = std(epsilon_i,[t-W:t])."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use raw volatility with beta adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Isolates idiosyncratic volatility."
+
+- point_id: "57"
+  title: "Range-Based Noise Overestimation"
+  group: 4
+  description: "Range-based volatility metrics (e.g., Parkinson) overstate volatility during low-volume sessions due to bid-ask bounce."
+  manual_bias: "Range-Based Noise Overestimation: Range-based volatility metrics (e.g., Parkinson) overstate volatility during low-volume sessions due to bid-ask bounce."
+  quant_replacement: "Causal Bid-Ask Bounce Filtered Rogers-Satchell Volatility. Subtract estimated spread-bounce parameters: sigma_RS_clean^2 = max(0, sigma_RS^2 - Spread^2 / 4)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use Parkinson with spread adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: ["17"]
+  notes: "Filters bid-ask bounce noise."
+
+- point_id: "58"
+  title: "Linear Trend Volatility Normalization"
+  group: 4
+  description: "Calculating volatility over trending phases linearly, which artificially inflates regime metrics."
+  manual_bias: "Linear Trend Volatility Normalization: Calculating volatility over trending phases linearily, which artificially inflates regime metrics."
+  quant_replacement: "Detrended Fluctuation Analysis (DFA) Volatility Scaling. Detrend local series windows before measuring fluctuations: F(s) = sum (y_k - Y_k)^2 ; sigma_DFA,t = F(X_t, s)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use linear detrend with DFA validation."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Removes trend bias in volatility."
+
+- point_id: "59"
+  title: "Symmetric Volatility Memory Spans"
+  group: 4
+  description: "Volatility memory decays at identical chronological intervals across different assets."
+  manual_bias: "Symmetric Volatility Memory Spans: Volatility memory decays at identical chronological intervals across different assets."
+  quant_replacement: "Hurst-Adaptive Volatility Memory Half-Life. Scale decay parameters based on local persistent memory: lambda_vol,t = lambda_base * e ^ -(H_t - 0.5)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use fixed half-life with Hurst adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Adapts memory to fractal properties."
+
+- point_id: "60"
+  title: "Volatility Jump Discontinuity Ignorance"
+  group: 4
+  description: "Modeling volatility as a continuous Brownian motion, ignoring jump-discontinuity risk."
+  manual_bias: "Volatility Jump Discontinuity Ignorance: Modeling volatility as a continuous Brownian motion, ignoring jump-discontinuity risk."
+  quant_replacement: "Bar-Level Realized Kernel with Jump Component. Separate continuous and jump components: RV_t = sum (ln(C_i/O_i))^2 * (C_i / Q_i + eps) ; Jump = max(0, RV_t - BV_t) where BV is bipower variation."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use range-based with jump filter."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Separates jump risk from diffusion."
+
+# Group 5: Statistical Distribution, Tail Risk, & Scaling (Points 61–75)
+- point_id: "61"
+  title: "Normal Distribution Assumptions"
+  group: 5
+  description: "Assuming altcoin returns follow a symmetric normal distribution leads to severe model underestimations of downside risk."
+  manual_bias: "Normal Distribution Assumptions: Assuming altcoin returns follow a symmetric normal distribution leads to severe model underestimations of downside risk."
+  quant_replacement: "Extreme Value Theory (EVT) Generalized Pareto Distribution (GPD). Parameterize distribution tails using GPD parameters: G(x) = 1 - (1 + xi * x / beta) ^ (-1/xi)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use normal with fat-tail adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Critical for tail risk in altcoins."
+
+- point_id: "62"
+  title: "Stationary Covariance Matrices"
+  group: 5
+  description: "Assuming multi-asset correlations are stationary over time."
+  manual_bias: "Stationary Covariance Matrices: Assuming multi-asset correlations are stationary over time."
+  quant_replacement: "Ledoit-Wolf Shrinkage Covariance Estimation. Shrink covariance estimates toward a structured target to prevent matrix inversion failures: Sigma_shrunk = delta * F + (1-delta) * S."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use sample covariance with shrinkage."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Stabilizes multi-asset covariance."
+
+- point_id: "63"
+  title: "Absolute Value Normalization (Min-Max Scaling)"
+  group: 5
+  description: "Normalizing features using static min-max calculations fails when encountering out-of-sample extreme events."
+  manual_bias: "Absolute Value Normalization (Min-Max Scaling): Normalizing features using static min-max calculations fails when encountering out-of-sample extreme events."
+  quant_replacement: "Quantile Transformer Mapping (Uniform CDF Transforms). Map features to standard normal distributions: X_t = Phi^{-1} ( F(X_t) )."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use robust scaling (median/IQR)."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Robust to outliers in normalization."
+
+- point_id: "64"
+  title: "Symmetric Tail Risk Bounds"
+  group: 5
+  description: "Measuring tail risk symmetrically using raw returns variance."
+  manual_bias: "Symmetric Tail Risk Bounds: Measuring tail risk symmetrically using raw returns variance."
+  quant_replacement: "Causal Value at Risk (VaR) & Expected Shortfall (ES). Compute expected losses conditional on crossing VaR boundaries: ES_alpha,t = E[r_t | r_t <= VaR_alpha,t ]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use symmetric VaR with conservative multiplier."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Direct tail risk measurement."
+
+- point_id: "65"
+  title: "Stationary Autoregressive Parameter Assumptions"
+  group: 5
+  description: "Modeling returns using stationary autoregressive models."
+  manual_bias: "Stationary Autoregressive Parameter Assumptions: Modeling returns using stationary autoregressive models."
+  quant_replacement: "Kalman-Filter Dynamic Autoregressive Parameters. Update AR parameters as state variables using Kalman Filter updates: y_t = x_t * beta_t + epsilon ; beta_t|t = beta_t|t-1 + K_t (r_i,t - alpha - beta_t|t-1 * r_m,t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed AR with recursive least squares."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Captures time-varying AR dynamics."
+
+- point_id: "66"
+  title: "Outlier Sensitivity in Return Estimations"
+  group: 5
+  description: "Estimating expected returns using the sample mean, which is highly sensitive to outlier return spikes."
+  manual_bias: "Outlier Sensitivity in Return Estimations: Estimating expected returns using the sample mean, which is highly sensitive to outlier return spikes."
+  quant_replacement: "Huber Loss Robust Return Estimator. Apply robust M-estimators to estimate expected returns: sum psi( (r_i - mu) / sigma ) = 0 where psi(x) = max(-c, min(c, x))."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use median return estimator."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Robust expected return estimation."
+
+- point_id: "67"
+  title: "Homoskedastic Error Term Assumptions"
+  group: 5
+  description: "Assuming regression error terms are homoskedastic across different assets."
+  manual_bias: "Homoskedastic Error Term Assumptions: Assuming regression error terms are homoskedastic across different assets."
+  quant_replacement: "White's Heteroskedasticity-Consistent Covariance Estimator. Adjust regression standard errors: Sigma_b = (X'X)^{-1} X' Omega X (X'X)^{-1}."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use OLS with robust SE fallback."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Corrects for heteroskedasticity."
+
+- point_id: "68"
+  title: "Linear Stationarity of Asset Correlation"
+  group: 5
+  description: "Estimating asset relationships linearly using Pearson's correlation coefficient."
+  manual_bias: "Linear Stationarity of Asset Correlation: Estimating asset relationships linearily using Pearson's correlation coefficient."
+  quant_replacement: "Rank-Based Spearman's Rho or Kendall's Tau Copula Modeling. Capture non-linear joint dependency structures."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use Pearson with rank validation."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures non-linear correlations."
+
+- point_id: "69"
+  title: "Tail Skewness Ignorance"
+  group: 5
+  description: "Missing changes in return distributions' skewness over time."
+  manual_bias: "Tail Skewness Ignorance: Missing changes in return distributions' skewness over time."
+  quant_replacement: "Rolling Fisher Skewness Estimator. Measure distribution asymmetry: gamma_1,t = (1/W) * sum (r_i - mu)^3 / sigma^3."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use sample skewness with window."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Tracks skewness evolution."
+
+- point_id: "70"
+  title: "Heavy-Tail Excess Kurtosis Ignorance"
+  group: 5
+  description: "Ignoring changes in tail fatness, which leads to model failures during market crises."
+  manual_bias: "Heavy-Tail Excess Kurtosis Ignorance: Ignoring changes in tail fatness, which leads to model failures during market crises."
+  quant_replacement: "Rolling Fisher Kurtosis Estimator. Track distribution fat-tailedness: gamma_2,t = (1/W) * sum (r_i - mu)^4 / sigma^4 - 3."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use sample kurtosis with window."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Tracks kurtosis for tail risk."
+
+- point_id: "71"
+  title: "Static Beta Systematic Risk Scaling"
+  group: 5
+  description: "Static beta systematic risk scaling."
+  manual_bias: "Static Beta Systematic Risk Scaling: Quant Replacement: Kalman-Filter Dynamic Beta Estimator. Update beta coefficients recursively on each new bar: beta_t|t = beta_t|t-1 + K_t (r_i,t - alpha - beta_t|t-1 * r_m,t)."
+  quant_replacement: "Kalman-Filter Dynamic Beta Estimator. Update beta coefficients recursively on each new bar."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use rolling beta with window."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures time-varying beta."
+
+- point_id: "72"
+  title: "Symmetrical Liquidation Triggers"
+  group: 5
+  description: "Assuming long and short liquidation events scale symmetrically."
+  manual_bias: "Symmetrical Liquidation Triggers: Assuming long and short liquidation events scale symmetrically."
+  quant_replacement: "Extreme Value Tail-Index Estimation (Hill's Estimator). Calculate tail indices separately for positive and negative tails: alpha_tail,t = k / sum_{i=1 to k} ln( x_{(i)} / x_{(k+1)} )."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use symmetric tail index with conservative k."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Separates long/short tail risk."
+
+- point_id: "73"
+  title: "Stationary Cointegration Arrays"
+  group: 5
+  description: "Assuming cointegration vectors are stationary over time."
+  manual_bias: "Stationary Cointegration Arrays: Assuming cointegration vectors are stationary over time."
+  quant_replacement: "Rolling Johansen Trace Test Filtering. Run rolling Johansen cointegration tests dynamically: lambda_trace(r) = -T * sum ln(1 - lambda_i) for i=r+1 to K."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed cointegration with periodic retest."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Monitors cointegration stability."
+
+- point_id: "74"
+  title: "Structural Break Ignorance"
+  group: 5
+  description: "Assuming return distributions are stable across structural regime changes."
+  manual_bias: "Structural Break Ignorance: Assuming return distributions are stable across structural regime changes."
+  quant_replacement: "Cusum Structural Break Detector. Detect changes in the cumulative sum of recursive residuals: W_t = sum_{j=1 to t} w_j / sigma_hat ; flag if exceeds critical value."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use fixed regime with periodic break test."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Detects structural breaks."
+
+- point_id: "75"
+  title: "Multicollinear Feature Dependency"
+  group: 5
+  description: "Directly inputting highly collinear structural variables into linear or deep neural networks."
+  manual_bias: "Multicollinear Feature Dependency: Directly inputting highly collinear structural variables into linear or deep neural networks."
+  quant_replacement: "VIF (Variance Inflation Factor) Filtering. Drop collinear features with VIF scores crossing threshold boundaries: VIF_j = 1 / (1 - R_j^2)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use correlation filter with VIF threshold."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Removes multicollinearity pre-modeling."
+
+# Group 6: Machine Learning, Target Labeling, & Clustering (Points 76–90)
+- point_id: "76"
+  title: "Unsupervised Feature Clustering Arbitrary Weighting"
+  group: 6
+  description: "Passing unweighted, collinear features to unsupervised clustering algorithms (e.g., HDBSCAN on Slots 00–11)."
+  manual_bias: "Unsupervised Feature Clustering Arbitrary Weighting: Passing unweighted, collinear features to unsupervised clustering algorithms (e.g., HDBSCAN on Slots 00–11)."
+  quant_replacement: "Mutual Information (MI) Distance Metric Scaling. Scale features by their mutual information relative to the target before clustering: d(X,Y) = 1 - I(X;Y) / H(X,Y)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use equal weight with MI pre-filter."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Improves clustering input quality."
+
+- point_id: "77"
+  title: "Equal Component Weights in Clustering"
+  group: 6
+  description: "Clustering spatial matrices without adjusting for variable contributions to overall variance."
+  manual_bias: "Equal Component Weights in Clustering: Clustering spatial matrices without adjusting for variable contributions to overall variance."
+  quant_replacement: "PCA-Principal Component Distance Projections. Perform clustering on the coordinate projection space of the top principal components: z = X P_i for i in top_k."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use standardized features with equal weight."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Reduces variance dominance in clustering."
+
+- point_id: "78"
+  title: "Symmetric Target Labeling Loss Boundaries"
+  group: 6
+  description: "Defining target labels using symmetric percentage boundaries, ignoring historical asymmetry."
+  manual_bias: "Symmetric Target Labeling Loss Boundaries: Defining target labels using symmetric percentage boundaries, ignoring historical asymmetry."
+  quant_replacement: "Volatility-Symmetric Dynamic Multi-Barrier Target Labels. Set barriers relative to local volatility: Barrier_t = +/- sigma_rolling,t * phi."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use symmetric barriers with volatility scaling."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Adapts labels to local volatility."
+
+- point_id: "79"
+  title: "Point-in-Time Prediction Evaluation"
+  group: 6
+  description: "Backtesting models using simple point-in-time predictions."
+  manual_bias: "Point-in-Time Prediction Evaluation: Backtesting models using simple point-in-time predictions."
+  quant_replacement: "Combinatorial Purged Cross-Validation (CPCV) Path Calculations. Test across combinations of historical blocks to generate a distribution of out-of-sample paths: S = {Combinations of N blocks taken k at a time}."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "high"
+  min_data_density: 500
+  fallback_strategy: "Use purged K-fold with embargo."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Rigorous out-of-sample testing."
+
+- point_id: "80"
+  title: "Model Selection via Inflated Sharpe Metrics"
+  group: 6
+  description: "Selecting models based on the standard Sharpe ratio, which is easily inflated by data-snooping over multiple tests."
+  manual_bias: "Model Selection via Inflated Sharpe Metrics: Selecting models based on the standard Sharpe ratio, which is easily inflated by data-snooping over multiple tests."
+  quant_replacement: "Deflated Sharpe Ratio (DSR) Adjustment. Correct the Sharpe ratio for the number of tested alternative models: DSR = Sharpe * sqrt( T / (1 - gamma * (Sharpe^2 / 4 + 1/(T-1)) ) ) or similar adjustment."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 200
+  fallback_strategy: "Use raw Sharpe with multiple-testing correction."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Prevents data-snooping in model selection."
+
+- point_id: "81"
+  title: "Overfitting to Noisy Multi-Asset Networks"
+  group: 6
+  description: "Modeling relationships across all 530 tokens linearly without pruning weak links."
+  manual_bias: "Overfitting to Noisy Multi-Asset Networks: Modeling relationships across all 530 tokens linearily without pruning weak links."
+  quant_replacement: "Minimum Spanning Tree (MST) Correlation Network Pruning. Filter asset networks using MST metrics: d_i,j = 2*(1 - rho_i,j) ; Prune weak connections to minimize tree path length."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use full correlation with threshold pruning."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Reduces noise in cross-asset networks."
+
+- point_id: "82"
+  title: "Non-Causal Global Prior Inflation"
+  group: 6
+  description: "Injecting cross-sectional global priors derived from future states into current local execution models."
+  manual_bias: "Non-Causal Global Prior Inflation: Injecting cross-sectional global priors derived from future states into current local execution models."
+  quant_replacement: "Causally Lagged Cross-Sectional Information Flows. Ensure cross-sectional features are strictly lagged relative to local asset time: Prior_i,t = G( {X_j,t-1} for j in Assets )."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use local-only features with lagged global."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Enforces causality in global priors."
+
+- point_id: "83"
+  title: "Homogeneous Error Term Weights in Loss Architectures"
+  group: 6
+  description: "Training models using uniform weights across all training samples."
+  manual_bias: "Homogeneous Error Term Weights in Loss Architectures: Training models using uniform weights across all training samples."
+  quant_replacement: "Information-Weighted Loss Training. Weight the loss of each sample by its relative information density: L = sum w_i * (Y_i - Yhat_i)^2 where w_i proportional to e ^ CDF_density (X_i)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use uniform weight with density gate."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Focuses loss on high-information samples."
+
+- point_id: "84"
+  title: "Unbalanced Spatial Density Clustering"
+  group: 6
+  description: "Applying spatial density clustering (e.g., HDBSCAN) without correcting for variable scaling across different tokens."
+  manual_bias: "Unbalanced Spatial Density Clustering: Applying spatial density clustering (e.g., HDBSCAN) without correcting for variable scaling across different tokens."
+  quant_replacement: "Standardized Mahalanobis Distance Metrics. Compute cluster distances using covariance matrices to prevent nominal scale distortions: d_M(x, y) = (x - y)' * Sigma^{-1} * (x - y)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use Euclidean with per-feature standardization."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Prevents scale bias in clustering."
+
+- point_id: "85"
+  title: "Equal-Weighted Neural Model Voting"
+  group: 6
+  description: "Combining predictions from multiple neural sub-components linearly."
+  manual_bias: "Equal-Weighted Neural Model Voting: Combining predictions from multiple neural sub-components linearily."
+  quant_replacement: "Bayesian Model Averaging (BMA) Ensemble Weighting. Scale model weights by their posterior probability: P(M_k | D_t) proportional to P(D_t | M_k) * P(M_k)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use equal weight with validation score."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Probabilistic ensemble weighting."
+
+- point_id: "86"
+  title: "Information-Theoretic Feature Redundancy"
+  group: 6
+  description: "Training models with collinear structural features."
+  manual_bias: "Information-Theoretic Feature Redundancy: Training models with collinear structural features."
+  quant_replacement: "Max-Relevance Min-Redundancy (mRMR) Feature Selection. Filter features to maximize target relevance while minimizing mutual redundancy: max I(S,Y) - 1/|S| sum I(X_i, X_j)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use correlation filter with MI threshold."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Reduces feature redundancy pre-training."
+
+- point_id: "87"
+  title: "Stationary Linear Model Projections"
+  group: 6
+  description: "Predicting forward returns under linear, stationary regression assumptions."
+  manual_bias: "Stationary Linear Model Projections: Predicting forward returns under linear, stationary regression assumptions."
+  quant_replacement: "Local Polynomial Regression (LOESS). Model relationships using localized, non-parametric weighted regressions: min sum w_i * (y_i - x_i * beta)^2 where w_i = (1 - |d_i|)^3."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use linear regression with local weighting."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures non-stationary local relationships."
+
+- point_id: "88"
+  title: "Symmetrical Model Evaluation Loss Functions"
+  group: 6
+  description: "Evaluating model predictions using symmetrical loss metrics (e.g., Mean Squared Error) which treat overpredictions and underpredictions identically."
+  manual_bias: "Symmetrical Model Evaluation Loss Functions: Evaluating model predictions using symmetrical loss metrics (e.g., Mean Squared Error) which treat overpredictions and underpredictions identically."
+  quant_replacement: "Asymmetric Imbalance Penalized Loss (Linex Loss). Penalize downside execution risk heavily: L(Delta) = (e ^ (a*Delta) - a*Delta - 1) / a^2 where Delta = Y - Yhat."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use MSE with asymmetric weighting."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Penalizes downside more heavily."
+
+- point_id: "89"
+  title: "Rigid Sessional State Categorizations"
+  group: 6
+  description: "Splitting price action into fixed categorical states (e.g., Bull, Bear, Range)."
+  manual_bias: "Rigid Sessional State Categorizations: Splitting price action into fixed categorical states (e.g., Bull, Bear, Range)."
+  quant_replacement: "Continuous Soft Probability State Memberships. Model states as soft probabilities using Gaussian Mixture Models (GMM): gamma_k,t = pi_k * N(X_t | mu_k, Sigma_k) / sum_j pi_j * N(X_t | mu_j, Sigma_j)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use threshold-based states with soft assignment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Captures continuous state probabilities."
+
+- point_id: "90"
+  title: "Point-in-Time Predictive Validation"
+  group: 6
+  description: "Validating model predictions using only a single historical test run."
+  manual_bias: "Point-in-Time Predictive Validation: Validating model predictions using only a single historical test run."
+  quant_replacement: "Monte Carlo Path Deflated Sharpe Ratio Evaluations. Generate thousands of synthetic out-of-sample path permutations to evaluate performance robustness."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "high"
+  min_data_density: 500
+  fallback_strategy: "Use single walk-forward with multiple seeds."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Rigorous robustness evaluation."
+
+# Group 7: Operational, Systemic, & Execution Firewalls (Points 91–100)
+- point_id: "91"
+  title: "OS-Dependent Directory Path Configurations"
+  group: 7
+  description: "Hardcoding fixed, platform-specific directory paths causes execution failures on different operating systems."
+  manual_bias: "OS-Dependent Directory Path Configurations: Hardcoding fixed, platform-specific directory paths (base_path: \"f:/kronos_v1_alt\") causes execution failures on different operating systems."
+  quant_replacement: "OS-Agnostic Environment Path Resolution. Resolve paths dynamically at runtime using platform-neutral functions: Base_Path = Resolve_POSIX_Path(Env[\"KRONOS_ROOT\"])."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: null
+  fallback_strategy: "Use environment variable with POSIX fallback."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Critical for cross-platform deployment."
+
+- point_id: "92"
+  title: "Static Compute Shard Sizes"
+  group: 7
+  description: "Hardcoding exact resource limits assumes static, uniform system resources."
+  manual_bias: "Static Compute Shard Sizes: Hardcoding exact resource limits (memory_adaptive_shard_size: 8192) assumes static, uniform system resources."
+  quant_replacement: "Dynamic Compute-Aware Adaptive Resource Allocation. Adjust shard and batch sizes dynamically based on system memory usage: Shard_Size_t = round(System_Memory_available * lambda_safety)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: null
+  fallback_strategy: "Use fixed shard with runtime memory check."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Adapts to available compute resources."
+
+- point_id: "93"
+  title: "Zero Execution Latency Assumptions"
+  group: 7
+  description: "Assuming instant order execution, ignoring execution latency and price slippage in backtests."
+  manual_bias: "Zero Execution Latency Assumptions: Assuming instant order execution, ignoring execution latency and price slippage in backtests."
+  quant_replacement: "Estimated Execution Delay Latency Slippage Modifiers. Incorporate dynamic delay parameters scaled by local volatility: P_executed,t = P_signal,t + sigma_t * Delta_t_delay."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use zero latency with conservative slippage buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Critical for realistic backtesting."
+
+- point_id: "94"
+  title: "Constant Execution Fee Scaling"
+  group: 7
+  description: "Applying flat, unchanging execution fee parameters across all asset classes."
+  manual_bias: "Constant Execution Fee Scaling: Applying flat, unchanging execution fee parameters across all asset classes."
+  quant_replacement: "Spread-Scaled Dynamic Execution Cost Models. Adjust transaction fees dynamically to match estimated execution spreads: Cost_t = Fee_base + delta_t * Spread_t."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use fixed fee with spread multiplier."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Adapts execution costs to market conditions."
+
+- point_id: "95"
+  title: "Point-in-Time Executions"
+  group: 7
+  description: "Executing trades at the precise instant of a hourly close candle assumes infinite liquidity is available."
+  manual_bias: "Point-in-Time Executions: Executing trades at the precise instant of a hourly close candle assumes infinite liquidity is available."
+  quant_replacement: "Time-Weighted Average Price (TWAP) Execution Models. Disperse execution fills over a localized sessional window: P_TWAP = 1/N * sum P_i for i=1 to N."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 100
+  fallback_strategy: "Use close price with TWAP adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Realistic execution modeling."
+
+- point_id: "96"
+  title: "Uniform Liquidation Correlation Assumptions"
+  group: 7
+  description: "Assuming all altcoins exhibit uniform correlation patterns during systemic liquidations."
+  manual_bias: "Uniform Liquidation Correlation Assumptions: Assuming all altcoins exhibit uniform correlation patterns during systemic liquidations."
+  quant_replacement: "Dynamic Minimum Variance Portfolio Sizing. Scale position sizes using conditional covariance estimates to minimize portfolio risk: w_t = Sigma_t^{-1} * 1 / (1' * Sigma_t^{-1} * 1)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use equal weight with covariance floor."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Risk-aware position sizing across assets."
+
+- point_id: "97"
+  title: "Uniform Performance Attributions"
+  group: 7
+  description: "Evaluating performance using unadjusted total return metrics, ignoring systemic risk and coin beta."
+  manual_bias: "Uniform Performance Attributions: Evaluating performance using unadjusted total return metrics, ignoring systemic risk and coin beta."
+  quant_replacement: "Beta-Neutral Risk-Adjusted Attribution (Jensen's Alpha). Measure asset outperformance relative to its systematic risk exposure: alpha_i,t = R_i,t - [R_f,t + beta_i,t * (R_m,t - R_f,t)]."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "low"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use raw return with beta adjustment."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Risk-adjusted performance measurement."
+
+- point_id: "98"
+  title: "Equal Cointegration Lifespans"
+  group: 7
+  description: "Assuming cointegration relationships between assets persist indefinitely without structural decay."
+  manual_bias: "Equal Cointegration Lifespans: Assuming cointegration relationships between assets persist indefinitely without structural decay."
+  quant_replacement: "Rolling Engle-Granger Cointegration Significance Filters. Continually verify cointegration stability: Delta e_t = gamma * e_{t-1} + sum phi_i * Delta e_{t-i} + mu_t ; Prune pairs if test statistics fail critical values."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "high"
+  compute_intensity: "medium"
+  min_data_density: 300
+  fallback_strategy: "Use fixed cointegration with periodic re-estimation."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 3
+  dependencies: []
+  notes: "Monitors cointegration decay."
+
+- point_id: "99"
+  title: "Static Risk Budgeting Bias"
+  group: 7
+  description: "Applying fixed risk budgets across assets without adapting to changing market conditions or liquidity."
+  manual_bias: "Static risk budgets ignore varying liquidity and volatility regimes across the 530 altcoins."
+  quant_replacement: "Dynamic Risk Parity with Liquidity Adjustment. Allocate risk budgets proportionally to inverse volatility, scaled by Amihud illiquidity: w_i,t = (1 / sigma_i,t) / sum(1/sigma_j,t) * e ^ (-lambda * Illiq_i,t)."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "medium"
+  min_data_density: 200
+  fallback_strategy: "Use equal risk budget with volatility floor."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 2
+  dependencies: []
+  notes: "Adapts risk allocation to current conditions."
+
+- point_id: "100"
+  title: "Non-Adaptive Execution Sizing Bias"
+  group: 7
+  description: "Using fixed position sizing rules without incorporating real-time market impact or execution cost feedback."
+  manual_bias: "Fixed position sizes fail to account for varying execution costs and slippage in different liquidity regimes."
+  quant_replacement: "Impact-Aware Adaptive Position Sizing. Scale position size inversely with estimated market impact and execution cost: Size_t = Target_Risk / (sigma_t * (1 + lambda * Estimated_Impact_t))."
+  status: "not_started"
+  applies_to_liquidity: ["all"]
+  complexity: "medium"
+  compute_intensity: "low"
+  min_data_density: 150
+  fallback_strategy: "Use fixed size with conservative impact buffer."
+  implementation_file: null
+  validation_status: "pending"
+  priority: 1
+  dependencies: []
+  notes: "Final operational firewall for execution."
+
+# End of 100 points. All fields populated based on the 100-point manual. Groups 1-7 as specified.
+# Total: 100 points.
+# Complexity distribution (approximate, based on method sophistication):
+# low: ~35 (simple rolling, basic adjustments)
+# medium: ~45 (PCA, GARCH, copulas, etc.)
+# high: ~15 (GP, wavelet, Kalman, etc.)
+# very_high: ~5 (full EVT + DCC + BMA combinations)
+# Priority distribution (impact vs risk):
+# 1 (highest): ~20 (core gates, tail risk, causality, operational)
+# 2: ~35
+# 3: ~30
+# 4: ~10
+# 5 (lowest): ~5
+# See Python registry for runtime queries and filtering.
