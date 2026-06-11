@@ -418,90 +418,97 @@ def auto_regressive_inference(tokenizer, model, x, x_stamp, y_stamp, max_context
         # load global prior for orthogonal injection (preserves dual-mode)
         # (in full V5 would condition model context or tokens here)
         pass
+
+    use_amp = neural_slots.get("mixed_precision", True)
+    mixed_precision_dtype = neural_slots.get("mixed_precision_dtype", "float16")
+    device_type = "cuda" if "cuda" in str(x.device) else "cpu"
+    amp_dtype = torch.float16 if mixed_precision_dtype == "float16" else torch.bfloat16
+
     with torch.no_grad():
-        x = torch.clip(x, -clip, clip)
+        with torch.amp.autocast(device_type=device_type, dtype=amp_dtype, enabled=use_amp):
+            x = torch.clip(x, -clip, clip)
 
-        device = x.device
-        x = x.unsqueeze(1).repeat(1, sample_count, 1, 1).reshape(-1, x.size(1), x.size(2)).to(device)
-        x_stamp = x_stamp.unsqueeze(1).repeat(1, sample_count, 1, 1).reshape(-1, x_stamp.size(1), x_stamp.size(2)).to(device)
-        y_stamp = y_stamp.unsqueeze(1).repeat(1, sample_count, 1, 1).reshape(-1, y_stamp.size(1), y_stamp.size(2)).to(device)
+            device = x.device
+            x = x.unsqueeze(1).repeat(1, sample_count, 1, 1).reshape(-1, x.size(1), x.size(2)).to(device)
+            x_stamp = x_stamp.unsqueeze(1).repeat(1, sample_count, 1, 1).reshape(-1, x_stamp.size(1), x_stamp.size(2)).to(device)
+            y_stamp = y_stamp.unsqueeze(1).repeat(1, sample_count, 1, 1).reshape(-1, y_stamp.size(1), y_stamp.size(2)).to(device)
 
-        x_token = tokenizer.encode(x, half=True)
-        
-        initial_seq_len = x.size(1)
-        batch_size = x_token[0].size(0)
-        total_seq_len = initial_seq_len + pred_len
-        full_stamp = torch.cat([x_stamp, y_stamp], dim=1)
+            x_token = tokenizer.encode(x, half=True)
+            
+            initial_seq_len = x.size(1)
+            batch_size = x_token[0].size(0)
+            total_seq_len = initial_seq_len + pred_len
+            full_stamp = torch.cat([x_stamp, y_stamp], dim=1)
 
-        generated_pre = x_token[0].new_empty(batch_size, pred_len)
-        generated_post = x_token[1].new_empty(batch_size, pred_len)
+            generated_pre = x_token[0].new_empty(batch_size, pred_len)
+            generated_post = x_token[1].new_empty(batch_size, pred_len)
 
-        pre_buffer = x_token[0].new_zeros(batch_size, max_context)
-        post_buffer = x_token[1].new_zeros(batch_size, max_context)
-        buffer_len = min(initial_seq_len, max_context)
-        if buffer_len > 0:
-            start_idx = max(0, initial_seq_len - max_context)
-            pre_buffer[:, :buffer_len] = x_token[0][:, start_idx:start_idx + buffer_len]
-            post_buffer[:, :buffer_len] = x_token[1][:, start_idx:start_idx + buffer_len]
+            pre_buffer = x_token[0].new_zeros(batch_size, max_context)
+            post_buffer = x_token[1].new_zeros(batch_size, max_context)
+            buffer_len = min(initial_seq_len, max_context)
+            if buffer_len > 0:
+                start_idx = max(0, initial_seq_len - max_context)
+                pre_buffer[:, :buffer_len] = x_token[0][:, start_idx:start_idx + buffer_len]
+                post_buffer[:, :buffer_len] = x_token[1][:, start_idx:start_idx + buffer_len]
 
-        if verbose:
-            ran = trange
-        else:
-            ran = range
-        for i in ran(pred_len):
-            current_seq_len = initial_seq_len + i
-            # Phase 3 full HYBRID-V5 slot gating: use neural_slots for adaptive window (reversal-aware)
-            window_len = min(current_seq_len, max_context)
-            # example gating with reversal_window slot
-            if neural_slots["reversal_window"][0] > 0:
-                window_len = min(window_len, neural_slots["reversal_window"][1])
-
-            if current_seq_len <= max_context:
-                input_tokens = [
-                    pre_buffer[:, :window_len],
-                    post_buffer[:, :window_len]
-                ]
+            if verbose:
+                ran = trange
             else:
-                input_tokens = [pre_buffer, post_buffer]
+                ran = range
+            for i in ran(pred_len):
+                current_seq_len = initial_seq_len + i
+                # Phase 3 full HYBRID-V5 slot gating: use neural_slots for adaptive window (reversal-aware)
+                window_len = min(current_seq_len, max_context)
+                # example gating with reversal_window slot
+                if neural_slots["reversal_window"][0] > 0:
+                    window_len = min(window_len, neural_slots["reversal_window"][1])
 
-            context_end = current_seq_len
-            context_start = max(0, context_end - max_context)
-            current_stamp = full_stamp[:, context_start:context_end, :].contiguous()
+                if current_seq_len <= max_context:
+                    input_tokens = [
+                        pre_buffer[:, :window_len],
+                        post_buffer[:, :window_len]
+                    ]
+                else:
+                    input_tokens = [pre_buffer, post_buffer]
 
-            s1_logits, context = model.decode_s1(input_tokens[0], input_tokens[1], current_stamp)
-            s1_logits = s1_logits[:, -1, :]
-            sample_pre = sample_from_logits(s1_logits, temperature=T, top_k=top_k, top_p=top_p, sample_logits=True)
+                context_end = current_seq_len
+                context_start = max(0, context_end - max_context)
+                current_stamp = full_stamp[:, context_start:context_end, :].contiguous()
 
-            s2_logits = model.decode_s2(context, sample_pre)
-            s2_logits = s2_logits[:, -1, :]
-            sample_post = sample_from_logits(s2_logits, temperature=T, top_k=top_k, top_p=top_p, sample_logits=True)
+                s1_logits, context = model.decode_s1(input_tokens[0], input_tokens[1], current_stamp)
+                s1_logits = s1_logits[:, -1, :]
+                sample_pre = sample_from_logits(s1_logits, temperature=T, top_k=top_k, top_p=top_p, sample_logits=True)
 
-            generated_pre[:, i] = sample_pre.squeeze(-1)
-            generated_post[:, i] = sample_post.squeeze(-1)
+                s2_logits = model.decode_s2(context, sample_pre)
+                s2_logits = s2_logits[:, -1, :]
+                sample_post = sample_from_logits(s2_logits, temperature=T, top_k=top_k, top_p=top_p, sample_logits=True)
 
-            if current_seq_len < max_context:
-                pre_buffer[:, current_seq_len] = sample_pre.squeeze(-1)
-                post_buffer[:, current_seq_len] = sample_post.squeeze(-1)
-            else:
-                pre_buffer.copy_(torch.roll(pre_buffer, shifts=-1, dims=1))
-                post_buffer.copy_(torch.roll(post_buffer, shifts=-1, dims=1))
-                pre_buffer[:, -1] = sample_pre.squeeze(-1)
-                post_buffer[:, -1] = sample_post.squeeze(-1)
+                generated_pre[:, i] = sample_pre.squeeze(-1)
+                generated_post[:, i] = sample_post.squeeze(-1)
 
-        full_pre = torch.cat([x_token[0], generated_pre], dim=1)
-        full_post = torch.cat([x_token[1], generated_post], dim=1)
+                if current_seq_len < max_context:
+                    pre_buffer[:, current_seq_len] = sample_pre.squeeze(-1)
+                    post_buffer[:, current_seq_len] = sample_post.squeeze(-1)
+                else:
+                    pre_buffer.copy_(torch.roll(pre_buffer, shifts=-1, dims=1))
+                    post_buffer.copy_(torch.roll(post_buffer, shifts=-1, dims=1))
+                    pre_buffer[:, -1] = sample_pre.squeeze(-1)
+                    post_buffer[:, -1] = sample_post.squeeze(-1)
 
-        context_start = max(0, total_seq_len - max_context)
-        input_tokens = [
-            full_pre[:, context_start:total_seq_len].contiguous(),
-            full_post[:, context_start:total_seq_len].contiguous()
-        ]
-        z = tokenizer.decode(input_tokens, half=True)
-        z = z.reshape(-1, sample_count, z.size(1), z.size(2))
-        preds = z.cpu().numpy()
-        preds = np.mean(preds, axis=1)
+            full_pre = torch.cat([x_token[0], generated_pre], dim=1)
+            full_post = torch.cat([x_token[1], generated_post], dim=1)
 
-        return preds
+            context_start = max(0, total_seq_len - max_context)
+            input_tokens = [
+                full_pre[:, context_start:total_seq_len].contiguous(),
+                full_post[:, context_start:total_seq_len].contiguous()
+            ]
+            z = tokenizer.decode(input_tokens, half=True)
+            z = z.reshape(-1, sample_count, z.size(1), z.size(2))
+            preds = z.cpu().numpy()
+            preds = np.mean(preds, axis=1)
+
+            return preds
 
 
 def calc_time_stamps(x_timestamp):
@@ -546,17 +553,36 @@ class KronosPredictor:
         self.forecast_horizon = self.neural_slots.get("forecast_horizon", 4)
         self.max_context_length = self.neural_slots.get("max_context_length", 64)
         self.mixed_precision = self.neural_slots.get("mixed_precision", True)
-        
-        # Auto-detect device if not specified
-        if device is None:
-            if torch.cuda.is_available():
-                device = "cuda:0"
-            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-                device = "mps"
-            else:
-                device = "cpu"
-        
-        self.device = device
+        self.mixed_precision_dtype = self.neural_slots.get("mixed_precision_dtype", "float16")
+        self.pin_memory = self.neural_slots.get("pin_memory", True)
+        self.use_compile = self.neural_slots.get("compile", False)
+        self.compile_mode = self.neural_slots.get("compile_mode", "reduce-overhead")
+        self.seed = self.neural_slots.get("seed", 42)
+
+        # Enforce mathematical determinism by seeding torch and numpy
+        import torch
+        import numpy as np
+        torch.manual_seed(self.seed)
+        np.random.seed(self.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(self.seed)
+
+        # Resolve device from config if not passed explicitly:
+        target_device = device
+        if target_device is None:
+            target_device = self.neural_slots.get("device", "cpu")
+            if target_device == "auto":
+                if torch.cuda.is_available():
+                    target_device = "cuda:0"
+                elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                    target_device = "mps"
+                else:
+                    target_device = "cpu"
+
+        self.device = target_device
+
+        import logging
+        logger = logging.getLogger("KronosPredictor")
 
         self._model_loaded = False
         if self.tokenizer is None or self.model is None:
@@ -580,17 +606,60 @@ class KronosPredictor:
                     self.tokenizer = KronosTokenizer.from_pretrained(tok_dir)
                 if self.model is None and mod_dir:
                     self.model = Kronos.from_pretrained(mod_dir)
-                self.tokenizer = self.tokenizer.to(self.device)
-                self.model = self.model.to(self.device)
+
+                # Try transferring to target device
+                if self.tokenizer is not None:
+                    self.tokenizer = self.tokenizer.to(self.device)
+                if self.model is not None:
+                    self.model = self.model.to(self.device)
                 self._model_loaded = True
-            except Exception:
-                self._model_loaded = False
+            except Exception as e:
+                logger.warning("==================================================")
+                logger.warning(f"[WARN] DEVICE ALLOCATION FAILED FOR {self.device}")
+                logger.warning(f"Error: {e}")
+                logger.warning("FALLING BACK TO CPU FOR STABILITY")
+                logger.warning("==================================================")
+                self.device = "cpu"
+                try:
+                    if self.tokenizer is not None:
+                        self.tokenizer = self.tokenizer.to(self.device)
+                    if self.model is not None:
+                        self.model = self.model.to(self.device)
+                    self._model_loaded = True
+                except Exception as fallback_err:
+                    logger.error(f"[ERROR] CPU fallback also failed: {fallback_err}")
+                    self._model_loaded = False
         else:
-            if self.tokenizer is not None:
-                self.tokenizer = self.tokenizer.to(self.device)
-            if self.model is not None:
-                self.model = self.model.to(self.device)
-            self._model_loaded = False
+            try:
+                if self.tokenizer is not None:
+                    self.tokenizer = self.tokenizer.to(self.device)
+                if self.model is not None:
+                    self.model = self.model.to(self.device)
+                self._model_loaded = True
+            except Exception as e:
+                logger.warning("==================================================")
+                logger.warning(f"[WARN] DEVICE ALLOCATION FAILED FOR {self.device}")
+                logger.warning(f"Error: {e}")
+                logger.warning("FALLING BACK TO CPU FOR STABILITY")
+                logger.warning("==================================================")
+                self.device = "cpu"
+                try:
+                    if self.tokenizer is not None:
+                        self.tokenizer = self.tokenizer.to(self.device)
+                    if self.model is not None:
+                        self.model = self.model.to(self.device)
+                    self._model_loaded = True
+                except Exception as fallback_err:
+                    logger.error(f"[ERROR] CPU fallback also failed: {fallback_err}")
+                    self._model_loaded = False
+
+        if self._model_loaded and self.use_compile and self.model is not None:
+            try:
+                logger.info(f"Compiling model with mode {self.compile_mode}...")
+                self.model = torch.compile(self.model, mode=self.compile_mode)
+                logger.info("Model compiled successfully.")
+            except Exception as compile_err:
+                logger.warning(f"[WARN] torch.compile failed: {compile_err}. Falling back to eager execution.")
 
     def compute_neural_conviction(self, df_or_slots=None):
         neural = self.neural_slots
@@ -609,34 +678,31 @@ class KronosPredictor:
             eps = neural["strength_add"]
             x = (x - x_mean) / (x_std + eps)
             x = np.clip(x, -self.clip, self.clip)
-            x_tensor = torch.from_numpy(x.astype(np.float32)).to(self.device)
+            
+            device_type = "cuda" if "cuda" in str(self.device) else "cpu"
+            if getattr(self, "pin_memory", True) and device_type == "cuda":
+                x_tensor = torch.from_numpy(x.astype(np.float32)).pin_memory().to(self.device, non_blocking=True)
+            else:
+                x_tensor = torch.from_numpy(x.astype(np.float32)).to(self.device)
+                
             if x_tensor.dim() == 2:
                 x_tensor = x_tensor.unsqueeze(0)
             # scalar or safety fallback
             if mode == "scalar" or not getattr(self, "use_full_model", False) or self.model is None:
-                emb = self.tokenizer.embed(x_tensor)
-                if self.model is not None:
-                    try:
-                        # real model forward path active (Kronos loaded from sovereign_ctx["model_dir"]/kronos_small per HYBRID-V5; tokenizer provides the bottleneck embed)
-                        pass
-                    except Exception:
-                        pass
+                amp_enabled = getattr(self, "mixed_precision", True)
+                amp_dtype = torch.float16 if getattr(self, "mixed_precision_dtype", "float16") == "float16" else torch.bfloat16
+                with torch.no_grad():
+                    with torch.amp.autocast(device_type=device_type, dtype=amp_dtype, enabled=amp_enabled):
+                        emb = self.tokenizer.embed(x_tensor)
                 return torch.norm(emb, p=2, dim=-1).mean().item()
             # Full Kronos style: use tokenizer + model for rich distinct features (Phase 2)
             max_ctx = getattr(self, "max_context_length", 64)
             if x_tensor.size(1) > max_ctx:
                 x_tensor = x_tensor[:, -max_ctx:, :]
-            use_amp = getattr(self, "mixed_precision", True) and str(self.device).startswith("cuda")
+            use_amp = getattr(self, "mixed_precision", True)
+            amp_dtype = torch.float16 if getattr(self, "mixed_precision_dtype", "float16") == "float16" else torch.bfloat16
             with torch.no_grad():
-                if use_amp:
-                    try:
-                        with torch.cuda.amp.autocast():
-                            s1_ids, s2_ids = self.tokenizer.encode(x_tensor, half=True)
-                            s1_logits, context = self.model.decode_s1(s1_ids, s2_ids)
-                    except Exception:
-                        s1_ids, s2_ids = self.tokenizer.encode(x_tensor, half=True)
-                        s1_logits, context = self.model.decode_s1(s1_ids, s2_ids)
-                else:
+                with torch.amp.autocast(device_type=device_type, dtype=amp_dtype, enabled=use_amp):
                     s1_ids, s2_ids = self.tokenizer.encode(x_tensor, half=True)
                     s1_logits, context = self.model.decode_s1(s1_ids, s2_ids)
                 # Pool hidden context ( [B,T,d_model] ) to dims distinct features
@@ -679,12 +745,23 @@ class KronosPredictor:
             try:
                 if isinstance(x, pd.DataFrame):
                     cols = self.price_cols + [self.vol_col, self.amt_vol]
-                    x_emb = torch.from_numpy(x[cols].values.astype(np.float32)).to(self.device)
+                    x_arr = x[cols].values.astype(np.float32)
                 else:
-                    x_emb = torch.from_numpy(np.array(x).astype(np.float32)).to(self.device)
+                    x_arr = np.array(x).astype(np.float32)
+                
+                device_type = "cuda" if "cuda" in str(self.device) else "cpu"
+                if getattr(self, "pin_memory", True) and device_type == "cuda":
+                    x_emb = torch.from_numpy(x_arr).pin_memory().to(self.device, non_blocking=True)
+                else:
+                    x_emb = torch.from_numpy(x_arr).to(self.device)
+                    
                 if x_emb.dim() == 2:
                     x_emb = x_emb.unsqueeze(0)
-                emb = self.tokenizer.embed(x_emb)
+                amp_enabled = getattr(self, "mixed_precision", True)
+                amp_dtype = torch.float16 if getattr(self, "mixed_precision_dtype", "float16") == "float16" else torch.bfloat16
+                with torch.no_grad():
+                    with torch.amp.autocast(device_type=device_type, dtype=amp_dtype, enabled=amp_enabled):
+                        emb = self.tokenizer.embed(x_emb)
                 neural_conv = torch.norm(emb, dim=-1).mean().item()
             except:
                 pass
@@ -698,9 +775,15 @@ class KronosPredictor:
             ccl0 = neural["confidence_clamp"][0]
             return {"preds": pd.DataFrame({"open": [conviction_baseline], "high": [conviction_baseline], "low": [ccl0], "close": [conviction_baseline], "volume": [conviction_baseline]}), "conviction_baseline": conviction_baseline, "slot_15": s15, "neural_conviction": neural_conv, "model_loaded": getattr(self, '_model_loaded', False)}
 
-        x_tensor = torch.from_numpy(np.array(x).astype(np.float32)).to(self.device)
-        x_stamp_tensor = torch.from_numpy(np.array(x_stamp).astype(np.float32)).to(self.device)
-        y_stamp_tensor = torch.from_numpy(np.array(y_stamp).astype(np.float32)).to(self.device)
+        device_type = "cuda" if "cuda" in str(self.device) else "cpu"
+        if getattr(self, "pin_memory", True) and device_type == "cuda":
+            x_tensor = torch.from_numpy(np.array(x).astype(np.float32)).pin_memory().to(self.device, non_blocking=True)
+            x_stamp_tensor = torch.from_numpy(np.array(x_stamp).astype(np.float32)).pin_memory().to(self.device, non_blocking=True)
+            y_stamp_tensor = torch.from_numpy(np.array(y_stamp).astype(np.float32)).pin_memory().to(self.device, non_blocking=True)
+        else:
+            x_tensor = torch.from_numpy(np.array(x).astype(np.float32)).to(self.device)
+            x_stamp_tensor = torch.from_numpy(np.array(x_stamp).astype(np.float32)).to(self.device)
+            y_stamp_tensor = torch.from_numpy(np.array(y_stamp).astype(np.float32)).to(self.device)
 
         # Phase 2/3: use neural slot for reversal-aware max_context in prediction forward
         effective_max_context = neural["min_history"]
@@ -854,4 +937,109 @@ class KronosPredictor:
             pred_dfs.append(pred_df)
 
         return pred_dfs
+
+
+def benchmark_inference(predictor, shard_path, num_runs=10):
+    """
+    Benchmark KronosPredictor inference time on a 25k+ bar shard.
+    Returns: average execution duration in seconds.
+    """
+    import time
+    import pandas as pd
+    import logging
+    
+    logger = logging.getLogger("KronosPredictor.Benchmark")
+    logger.info(f"Loading benchmark shard from {shard_path}...")
+    df = pd.read_parquet(shard_path)
+    
+    if len(df) < 25000:
+        logger.warning(f"Shard only has {len(df)} bars. Benchmarking on smaller length.")
+    
+    l = predictor.neural_slots.get("min_history", 100)
+    cols = predictor.price_cols + [predictor.vol_col, predictor.amt_vol]
+    if predictor.vol_col not in df.columns:
+        df[predictor.vol_col] = 0.0
+    if predictor.amt_vol not in df.columns:
+        df[predictor.amt_vol] = 0.0
+        
+    tail_df = df.tail(l)
+    
+    logger.info(f"Starting {num_runs} benchmarking loops...")
+    
+    start_time = time.perf_counter()
+    for _ in range(num_runs):
+        _ = predictor.compute_neural_conviction(tail_df)
+    end_time = time.perf_counter()
+    
+    avg_duration = (end_time - start_time) / num_runs
+    logger.info(f"Average conviction compute time: {avg_duration*1000:.4f} ms per run")
+    return avg_duration
+
+
+def run_predictor_benchmarks():
+    """
+    Finds a large shard, runs unoptimized vs optimized predictor configurations,
+    and prints the comparison results.
+    """
+    from orchestrator_engine import orchestrate_sovereign
+    from utils.sovereign_entrypoint import get_sovereign_config
+    import os
+    
+    cfg = get_sovereign_config()
+    ctx = orchestrate_sovereign("individual")
+    
+    # 1. Unoptimized Predictor
+    ctx_unopt = ctx.copy()
+    ctx_unopt["neural_slots"] = ctx["neural_slots"].copy()
+    ctx_unopt["neural_slots"]["pin_memory"] = False
+    ctx_unopt["neural_slots"]["mixed_precision"] = False
+    ctx_unopt["neural_slots"]["compile"] = False
+    
+    print("[BENCHMARK] Initializing Unoptimized Predictor...")
+    predictor_unopt = KronosPredictor(sovereign_ctx=ctx_unopt)
+    
+    # 2. Optimized Predictor
+    ctx_opt = ctx.copy()
+    ctx_opt["neural_slots"] = ctx["neural_slots"].copy()
+    ctx_opt["neural_slots"]["pin_memory"] = True
+    ctx_opt["neural_slots"]["mixed_precision"] = True
+    ctx_opt["neural_slots"]["compile"] = True
+    
+    print("[BENCHMARK] Initializing Optimized Predictor...")
+    predictor_opt = KronosPredictor(sovereign_ctx=ctx_opt)
+    
+    raw_shards_dir = cfg["storage"]["raw_shards_dir"]
+    target_shard = None
+    max_size = 0
+    for filename in os.listdir(raw_shards_dir):
+        if filename.endswith(".parquet"):
+            path = os.path.join(raw_shards_dir, filename)
+            size = os.path.getsize(path)
+            if size > max_size:
+                max_size = size
+                target_shard = path
+                
+    if target_shard is None:
+        print("[BENCHMARK] No parquet shards found on disk.")
+        return
+        
+    print(f"[BENCHMARK] Selected large shard: {os.path.basename(target_shard)}")
+    
+    print("[BENCHMARK] Running Unoptimized conviction compute...")
+    t_unopt = benchmark_inference(predictor_unopt, target_shard, num_runs=10)
+    
+    print("[BENCHMARK] Running Optimized conviction compute...")
+    t_opt = benchmark_inference(predictor_opt, target_shard, num_runs=10)
+    
+    diff_ms = (t_unopt - t_opt) * 1000
+    speedup = (t_unopt / t_opt) if t_opt > 0 else 1.0
+    
+    print("==================================================")
+    print("            INFERENCE BENCHMARK REPORT            ")
+    print("==================================================")
+    print(f"Unoptimized time : {t_unopt * 1000:.3f} ms / run")
+    print(f"Optimized time   : {t_opt * 1000:.3f} ms / run")
+    print(f"Difference       : {diff_ms:.3f} ms saved")
+    print(f"Speedup factor   : {speedup:.2f}x")
+    print("==================================================")
 

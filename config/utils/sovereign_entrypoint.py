@@ -12,7 +12,7 @@ if params_path:
     project_root = os.path.dirname(os.path.abspath(params_path))
     sys.path.insert(0, project_root)  # insert root so from config.xxx works for subdirs
 
-from config.validation.load_sovereign_config import load_sovereign_config, get_storage_path
+from config.validation.load_sovereign_config import load_sovereign_config, get_storage_path, get_timeframe_ms
 
 def get_sovereign_config():
     """Single canonical loader. Never bypass."""

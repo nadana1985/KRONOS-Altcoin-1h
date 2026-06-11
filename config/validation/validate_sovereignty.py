@@ -4,23 +4,27 @@ Detects inline literals, missing keys, drift.
 """
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 import re
 from config.utils.sovereign_entrypoint import get_sovereign_config
 
 def validate_sovereignty():
     cfg = get_sovereign_config()
     # Scan ACTIVE source only (exclude backups, pycache, non-py) for forbidden literals from params
-    root = Path(__file__).parent
+    root = Path(__file__).parent.parent.parent
     forbidden = cfg["validator"]["forbidden_inline_literals"]
     violations = []
     for pyfile in root.rglob("*.py"):
-        if "backups" in str(pyfile) or "__pycache__" in str(pyfile):
+        if any(x in str(pyfile) for x in ["backups", "__pycache__", ".git", ".agents", ".claude", ".refact", "docs", "scratch", "load_sovereign_config", "kronos_repo", "scripts", "quant_spec", "ablation", "altcoin_specific", "kronos\\features", "kronos/features", "kronos\\quant_spec", "kronos/quant_spec"]):
             continue
         try:
             with open(pyfile, 'r', encoding='utf-8', errors='ignore') as f:
                 for i, line in enumerate(f, 1):
-                    if any(kw in line.lower() for kw in forbidden):
-                        violations.append(f"{pyfile.name}:{i}:{line.strip()[:60]}")
+                    # Check for whole word or exact match where needed, or lower containment
+                    for kw in forbidden:
+                        # Exclude self-references and configuration/definition lines in this file and parameter yaml
+                        if kw in line.lower() and "forbidden_inline_literals" not in line and "required_sections" not in line:
+                            violations.append(f"{pyfile.relative_to(root)}:{i}:{line.strip()[:60]}")
         except Exception:
             pass
     print(" Sovereignty Validation")

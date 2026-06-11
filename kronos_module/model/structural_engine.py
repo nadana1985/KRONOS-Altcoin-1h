@@ -9,16 +9,21 @@ Zero inline literals. Preserves orthogonal neural slot veto for scaling.
 import os
 import sys
 
-# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
-params_path = os.getenv("KRONOS_PARAMS_PATH")
-if params_path:
-    project_root = os.path.dirname(os.path.abspath(params_path))
-    config_dir = os.path.join(project_root, "config")
-    sys.path.insert(0, config_dir)
+# Unconditional path bootstrap — derive project_root from __file__ location
+# This file is at kronos_module/model/structural_engine.py
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+_project_root = os.path.dirname(os.path.dirname(_this_dir))  # F:\kronos_v1_alt
+_config_dir = os.path.join(_project_root, "config")
+for _p in (_config_dir,):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from sovereign_entrypoint import get_sovereign_config
+from utils.sovereign_entrypoint import get_sovereign_config
 import pandas as pd
 import numpy as np  # for vectorized ops in hot path for 10M+ bars
+import logging
+
+logger = logging.getLogger("kronos.structural_engine")
 
 
 def get_structural_veto():
@@ -70,6 +75,8 @@ def get_dual_mode_context():
         "wick_ratio_mult": thr.get("wick_ratio_mult", 1.5),
         "sr_windows": thr.get("sr_windows", [20, 50, 100]),
         "proximity_decay": thr.get("proximity_decay", 0.95),
+        "gap_strategy": thr.get("gap_strategy", "ffill"),
+        "max_gap_threshold": thr.get("max_gap_threshold", 12),
     }
     # Phase 1 neural config for full Kronos conviction (from neural: section or defaults)
     neural_cfg = cfg.get("neural", {})
@@ -80,6 +87,13 @@ def get_dual_mode_context():
         "use_full_model": neural_cfg.get("use_full_model", False),
         "max_context_length": neural_cfg.get("max_context_length", 64),
         "mixed_precision": neural_cfg.get("mixed_precision", True),
+        "device": neural_cfg.get("device", "cpu"),
+        "pin_memory": neural_cfg.get("pin_memory", True),
+        "compile": neural_cfg.get("compile", False),
+        "compile_mode": neural_cfg.get("compile_mode", "reduce-overhead"),
+        "seed": neural_cfg.get("seed", 42),
+        "mixed_precision_dtype": neural_cfg.get("mixed_precision_dtype", "float16"),
+        "point_03_target_rank": neural_cfg.get("point_03_target_rank"),
     })
 
     return {
@@ -111,7 +125,7 @@ def apply_structural_veto(mode: str = "individual"):
 # Ablation note: set global_prior_mode.injection_ablatable=false in params to ablate global prior.
 # All scaling driven from symbols.target_count + project.timeframe.
 
-def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
+def compute_slots_sovereign(df: pd.DataFrame, neural: dict, engine=None) -> dict:
     """Structural slots per slot_reference_manual.md (full kline via .get, causal from neural_slots/ctx).
     # Inefficiencies for 10M+ bars found:
     # - 8+ separate full-df .rolling(..., iloc[-1]) = O(8n) CPU/mem per call (recompute all history for last bar only)
@@ -122,6 +136,7 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     # Vectorized fix: use .values + np for log/ops where possible. For GPU in neural (see miner call site).
     # Memory batch comment: for 10M+ bars per shard, batch symbols or use dask/numpy memmap; del large temps.
     """
+    df = df.copy()
     w = neural["reversal_window"][1]
     eps = neural["strength_add"]
     clamp_min = neural["confidence_clamp"][0]
@@ -132,6 +147,26 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     for col in ['open', 'high', 'low', 'close', 'volume', 'quote_volume', 'taker_buy_base_volume']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Gap validation & veto logic (Milestone 3)
+    gap_strategy = neural.get("gap_strategy", "ffill")
+    max_gap_threshold = neural.get("max_gap_threshold", 12)
+    if 'close' in df.columns:
+        is_nan = df['close'].isna()
+        if is_nan.any():
+            # Calculate max consecutive NaNs
+            consec_nans = is_nan.groupby((~is_nan).cumsum()).cumsum()
+            max_gap = consec_nans.max()
+            if max_gap > max_gap_threshold:
+                # Structural veto due to excessive temporal gap
+                return {f"slot_{i}": 0.0 for i in [0, 4, 7, 8, 9, 10, 11, 15]}
+            
+            # Apply configured strategy
+            if gap_strategy == "ffill":
+                df = df.ffill()
+            elif gap_strategy == "interpolate":
+                df = df.interpolate(method="linear", limit_direction="forward")
+
     vol = pd.to_numeric(df['volume'], errors='coerce')
     qvol = pd.to_numeric(df.get('quote_volume', vol), errors='coerce')
     taker_buy = pd.to_numeric(df.get('taker_buy_base_volume', vol * neural["strength_add"] / (neural["strength_add"] + neural["strength_add"])), errors='coerce')
@@ -141,6 +176,16 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     ofi = (taker_buy - (vol - taker_buy)).rolling(ofi_w, min_periods=min(min_p, ofi_w)).mean() / (vol.rolling(ofi_w, min_periods=min(min_p, ofi_w)).mean() + eps)
     cum_pressure = (taker_buy - (vol - taker_buy)).rolling(ofi_w, min_periods=min(min_p, ofi_w)).sum() / (vol.rolling(ofi_w, min_periods=min(min_p, ofi_w)).sum() + eps) * ofi_mult
     slot_00 = ((ofi + cum_pressure) / 2).iloc[-1]
+    # Point 24: Fractionally Differenced OFI — long-memory order flow preservation
+    try:
+        from kronos.quant_spec.overrides.point_24 import compute_point_24_override
+        _fd_result = compute_point_24_override(
+            raw_ofi=float(slot_00), df=df, symbol='', engine=engine,
+        )
+        _fd_ofi = _fd_result.get('engine_final_fdoi', slot_00)
+        slot_00 = _fd_ofi
+    except Exception:
+        logger.debug('[SLOT_00] Point 24 FDOFI failed, using raw OFI')
     slot_00 = min(clamp_max, max(clamp_min, slot_00))
     # slot_04 Hurst Exponent (Phase 1 hardening per KRONOS_V1_ALT_PROXY_HARDENING_ROADMAP.md)
     # Proper multi-lag Rescaled Range (R/S) + mean (vectorized where possible, causal)
@@ -159,6 +204,7 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     hurst = np.mean(H_list) if H_list else 0.5
     slot_04 = 0.5 - hurst   # mean-reversion bias (higher = stronger reversal potential)
     # slot_07 Amihud Illiquidity + Volume-Weighted Price Divergence (Phase 2 per roadmap)
+    # Batch 3: Point 23 (Eigenvalue-Driven Covariance Weighting) replaces static divergence_weight
     amihud_w = neural["amihud_window"]
     div_w = neural["divergence_weight"]
     # Amihud: |ret| / dollar volume (illiquidity)
@@ -176,7 +222,16 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     vol_chg = np.clip(vol_chg, -1 + eps, None)
     raw_div = pd.Series(np.abs(price_chg) - np.abs(vol_chg)).rolling(amihud_w, min_periods=min(min_p, amihud_w)).mean().iloc[-1]
     vol_weighted_div = raw_div / (qvol.rolling(amihud_w, min_periods=min(min_p, amihud_w)).std().iloc[-1] + eps)
-    slot_07 = (amihud + div_w * vol_weighted_div) / (1 + div_w)
+    # Point 23: eigenvalue-driven dynamic divergence weight (replaces static div_w)
+    _div_w_effective = div_w
+    try:
+        from kronos.quant_spec.overrides.point_23 import compute_point_23_override
+        _div_w_effective = compute_point_23_override(
+            raw_weight=div_w, df=df, symbol='', engine=engine,
+        )
+    except Exception:
+        logger.debug('[SLOT_07] Point 23 eigenvalue weight failed, using static div_w=%.3f', div_w)
+    slot_07 = (amihud + _div_w_effective * vol_weighted_div) / (1 + _div_w_effective)
     slot_07 = min(clamp_max, max(clamp_min, slot_07))
     # slot_08 Lightweight Regime Detection (ADX-inspired trend strength + multi-window volatility clustering) (Phase 2 per roadmap)
     adx_w = neural["regime_adx_window"]
@@ -203,23 +258,54 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     vpin = (cum_delta.abs() / (total_vol + eps)).clip(0, 1)
     slot_09 = vpin.iloc[-1]
     # slot_10 Multi-scale Candle Exhaustion Score (Phase 3)
+    # Batch 3: Point 19 (Beta-CDF Wick Mapping) replaces static wick_ratio_mult
     exh_ws = neural["exhaustion_windows"]
     wick_mult = neural["wick_ratio_mult"]
     candle_range = (df['high'] - df['low'])
     body = (df['close'] - df['open']).abs()
     upper_wick = df['high'] - pd.concat([df['close'], df['open']], axis=1).max(axis=1)
     lower_wick = pd.concat([df['close'], df['open']], axis=1).min(axis=1) - df['low']
-    wick_ratio = (upper_wick + lower_wick) / (body + eps) * wick_mult
+    # Point 19: Beta-CDF wick exhaustion (dynamic, distribution-aware)
+    _wick_mult_effective = wick_mult
+    try:
+        from kronos.quant_spec.overrides.point_19 import compute_point_19_override
+        _wick_mult_effective = compute_point_19_override(
+            raw_wick_score=wick_mult, df=df, symbol='', engine=engine,
+        )
+    except Exception:
+        logger.debug('[SLOT_10] Point 19 Beta-CDF wick failed, using static wick_mult=%.3f', wick_mult)
+    wick_ratio = (upper_wick + lower_wick) / (body + eps) * _wick_mult_effective
     exhaustion = wick_ratio.clip(0, 5)
     exh_scores = []
     for win in exh_ws:
         score = exhaustion.rolling(win, min_periods=min(min_p, win)).quantile(0.75).iloc[-1]
         exh_scores.append(score if not pd.isna(score) else 0.0)
     slot_10 = np.mean(exh_scores) if exh_scores else 0.0
+    # Point 29: Kendall's Tau Trend-Strength Scaling — modulate exhaustion by trend strength
+    try:
+        from kronos.quant_spec.overrides.point_29 import compute_point_29_override
+        _tau_exhaustion = compute_point_29_override(
+            trend_raw=slot_10, close=pd.Series(close_vals), df=df, symbol='', engine=engine,
+        )
+        # tau_exhaustion is high when trend is weak (exhausted) — multiply with slot_10
+        slot_10 = slot_10 * _tau_exhaustion
+    except Exception:
+        logger.debug('[SLOT_10] Point 29 Kendall tau failed, using raw slot_10=%.4f', slot_10)
     slot_10 = min(clamp_max, max(clamp_min, slot_10))
     # slot_11 Dynamic S/R Proximity with Decay (Phase 3)
+    # Point 25: Entropy-Adaptive Memory Half-Life — dynamic proximity decay
     sr_ws = neural["sr_windows"]
     decay = neural["proximity_decay"]
+    # Point 25: Entropy-Adaptive Memory Half-Life — modulate proximity decay (not replace)
+    try:
+        from kronos.quant_spec.overrides.point_25 import compute_point_25_override
+        _adaptive_lambda = compute_point_25_override(
+            raw_lambda=decay, df=df, symbol='', engine=engine,
+        )
+        # Modulate: higher lambda (high entropy) → faster decay (smaller base)
+        decay = decay * (1.0 - min(_adaptive_lambda, 0.5))  # cap modulation at 50%
+    except Exception:
+        logger.debug('[SLOT_11] Point 25 entropy-adaptive decay failed, using static decay=%.3f', decay)
     close_val = df['close'].iloc[-1]
     prox_scores = []
     for win in sr_ws:
@@ -233,6 +319,7 @@ def compute_slots_sovereign(df: pd.DataFrame, neural: dict) -> dict:
     slot_11 = np.mean(prox_scores) if prox_scores else 0.0
     slot_11 = min(clamp_max, max(clamp_min, slot_11))
     # slot_15 Sovereign Logistic Composite Gate (Phase 1 hardening per KRONOS_V1_ALT_PROXY_HARDENING_ROADMAP.md)
+    # Batch 3: Point 15 (Skewness-Weighted Asymmetric Barriers) modulates confidence bounds
     # Weighted logistic + entropy/diversity term (cfg-driven, causal)
     raw_w = {"slot_00": neural["strength_mult"], "slot_04": neural["variation"], "slot_07": neural["strength_mult"], "slot_08": neural["strength_add"], "slot_09": neural["strength_add"], "slot_10": neural["strength_mult"], "slot_11": neural["variation"]}
     tot = sum(raw_w.values()) + eps

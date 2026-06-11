@@ -2,6 +2,23 @@
 # Single source of truth. All values resolved exclusively here.
 # WARNING: Any edit to this file desyncs every downstream consumer.
 # Always run validate_sovereignty.py after changes.
+#
+# ═══ MIGRATION GUIDE (Phase 1 Override Integration) ═══
+# Several bias-related parameters below are now superseded by the Quant Bias
+# Override system (kronos/quant_spec/overrides/). They are marked DEPRECATED
+# and will be ignored once the override engine is fully wired.
+#
+# Migration path:
+#   reversal_confidence_min  → Point 01 (dynamic quantile veto)
+#   reversal_window_factor   → Point 08 (adaptive cycle scaling)
+#   reversal_base_strength_* → Point 04 (rolling percentile rank)
+#   vpin_window, ofi_window  → Point 02 (volatility-scaled lookback)
+#   min_24h_volume_usd       → Point 21 (Amihud illiquidity proxy)
+#
+# The override engine reads its own config from kronos/config/liquidity_tiers.yaml.
+# To disable all overrides instantly: set_overrides_enabled(False) in Python,
+# or OVERRIDES_ENABLED = False in kronos/quant_spec/bias_override_engine.py.
+# ═══════════════════════════════════════════════════════════════════════════
 
 project:
   name: &project_name KRONOS_V1_ALT
@@ -24,9 +41,9 @@ storage:
   logs_dir: !join [*base_path, "/logs"]
   config_dir: !join [*base_path, "/config"]
   params_file: "params_yaml.txt"
-  models_dir: !join [*base_path, "/kronus_module/models"]
-  kronos_small_dir: !join [*base_path, "/kronus_module/models/kronos_small"]
-  kronos_tokenizer_dir: !join [*base_path, "/kronus_module/models/kronos_tokenizer"]
+  models_dir: !join [*base_path, "/kronos_module/models"]
+  kronos_small_dir: !join [*base_path, "/kronos_module/models/kronos_small"]
+  kronos_tokenizer_dir: !join [*base_path, "/kronos_module/models/kronos_tokenizer"]
 
 individual_mode:
   enabled: true
@@ -99,6 +116,7 @@ validator:
     - "binance"
     - "530"
     - "1000000"
+    - "3600000"
   version_fallback: "unknown"
 
 utilities:
@@ -112,16 +130,20 @@ bootstrap:
   params_filename: "params_yaml.txt"
 
 thresholds:
+  # DEPRECATED - replaced by Point 01 (dynamic quantile veto)
   reversal_confidence_min: 0.72
   memory_adaptive_shard_size: 8192
   max_context_tokens: 12000
   # Neural reversal window/features (mathematical sovereignty)
   reversal_window_min: 20
   reversal_window_max: 50
+  # DEPRECATED - replaced by Point 08 (adaptive cycle scaling)
   reversal_window_factor: 0.3
   reversal_hash_mod: 1000
   reversal_variation_factor: 0.38
+  # DEPRECATED - replaced by Point 04 (rolling percentile rank)
   reversal_base_strength_multiplier: 4.2
+  # DEPRECATED - used as fallback, primary via Point 04
   reversal_base_strength_add: 0.55
   reversal_confidence_clamp_min: 0.58
   reversal_confidence_clamp_max: 0.91
@@ -144,10 +166,27 @@ thresholds:
   divergence_weight: 1.0
 
   # Phase 3: Final Proxy Hardening
+  # ═══ DEPRECATED below: replaced by Phase 2A Override Points (see liquidity_tiers.yaml) ═══
+  # Legacy close-to-close vol (P46 Yang-Zhang replaces)
+  # Legacy regime_adx_window (P74 CUSUM enhances)
+  # Legacy strength_add as fallback vol (P64 VaR/ES replaces)
+  # All Phase 2A volatility/tail-risk params read from kronos/config/liquidity_tiers.yaml overrides section
   exhaustion_windows: [5, 20]
   wick_ratio_mult: 1.5
   sr_windows: [20, 50, 100]
   proximity_decay: 0.95
+  gap_strategy: "ffill"
+  max_gap_threshold: 12
+
+  # Mining Status Tracker (cfg-driven, lightweight, no literals)
+  mining_status_log: "logs/mining_status.log"
+  status_report_interval: 10
+  dna_quality_interval: 50
+  enable_dna_quality: true
+  enable_json_checkpoint: true
+  checkpoint_file: "logs/mining_checkpoint.json"
+  enable_phylum_preview: true
+  mini_mining_limit: 10  # for testing: limit symbols_to_mine; 0 = all
 
 neural:
   # Neural conviction modes for slots 16-23 (cfg-driven, zero literals)
@@ -157,6 +196,75 @@ neural:
   use_full_model: false               # safety switch to enable full Kronos transformer
   max_context_length: 64              # guard for memory (e.g. AMD RX 560)
   mixed_precision: true
+  device: "cpu"
+  pin_memory: true
+  compile: false
+  compile_mode: "reduce-overhead"
+  seed: 42
+  mixed_precision_dtype: "float16"
+  point_02_enabled: true
+  point_02_gamma: 0.5
+  point_02_base_window: 100
+  point_03_enabled: true
+  point_03_target_rank: 4
+  # Batch 2 bias override activation flags (full config in liquidity_tiers.yaml overrides section)
+  point_06_enabled: true      # Continuous Amihud Decay Adjuster — replaces binary volume filter
+  point_11_enabled: true      # Volume-Synchronized EWM Smoothing — volume-scaled alpha_t
+  point_35_enabled: true      # Combinatorial Purging & Embargo — training-loop data hygiene
+  point_36_enabled: true      # OU Stochastic Bridge Gap Imputation — volatility-preserving fill
+  point_48_enabled: true      # Rolling MAD Volatility — outlier-robust vol estimator
+  point_82_enabled: true      # Causal Lagged Cross-Sectional Priors — multi-asset leakage gate
+  # Batch 3 bias override activation flags
+  point_15_enabled: true      # Skewness-Weighted Asymmetric Barriers — asymmetric confidence bounds
+  point_19_enabled: true      # Beta-CDF Wick Mapping — dynamic wick exhaustion for slot_10
+  point_23_enabled: true      # Eigenvalue-Driven Covariance Weighting — dynamic divergence for slot_07
+  point_28_enabled: true      # Hurst-Adaptive Profile Lifespans — dynamic volume profile lookback
+  point_56_enabled: true      # Beta-Neutralized Residual Volatility — strips market-beta variance
+  # Batch 4 bias override activation flags
+  point_72_enabled: true      # Hill's Tail Index Estimation — asymmetric long/short tail risk
+  point_29_enabled: true      # Kendall's Tau Trend-Strength — non-parametric exhaustion scaling
+  point_44_enabled: true      # Information-Weighted Rolling Operators — entropy-weighted aggregations
+  point_64_enabled: true      # Causal VaR & Expected Shortfall — one-sided tail risk measure
+  point_25_enabled: true      # Entropy-Adaptive Memory Half-Life — adaptive S/R decay
+  # Batch 5 bias override activation flags
+  point_24_enabled: true      # Fractionally Differenced OFI — long-memory order flow
+  point_52_enabled: true      # Downside Semi-Volatility — asymmetric risk vol
+  point_57_enabled: true      # Bid-Ask Filtered RS Vol — bounce-corrected vol
+  point_66_enabled: true      # Huber Robust Return — outlier-resistant mean
+  point_69_enabled: true      # Rolling Fisher Skewness — distribution asymmetry
+
+# Backtesting & Impact Analysis config
+backtest:
+  enabled: true
+  risk_free_rate: 0.0
+  annualization_factor: 8760
+  var_confidence: 0.95
+  # ── Legacy Mode Threshold (relaxed for fair A/B comparison) ──
+  # When overrides_enabled=False, use this relaxed threshold instead of the strict 0.72.
+  # Goal: Legacy mode generates a meaningful trade baseline for A/B comparison.
+  # Recommended range: 0.65–0.68 (too low → noisy signals; too high → near-zero activity).
+  legacy_confidence_min: 0.65   # relaxed threshold when overrides_enabled=False (override mode uses 0.72)
+  # ── Position Sizing (Fix: vol-adjusted to prevent override-driven over-sizing) ──
+  # Root cause of Problem B: high confidence → linear position scale → oversized positions → large drawdowns.
+  # Fix: vol_adjusted is default. Confidence impact compressed via sqrt curve. Hard cap enforced.
+  position_sizing_method: "vol_adjusted"  # vol_adjusted | sqrt_confidence | linear_capped
+  position_base_size: 1.0       # base position multiplier (1.0 = neutral)
+  position_max_size: 1.5        # hard cap on position multiplier (1.5x = max 1.5x base; prevents runaway sizing)
+  position_min_size: 0.05       # floor for position multiplier (prevents rounding to zero)
+  position_target_vol: 0.18     # target annualized volatility for vol-adjusted sizing
+  position_vol_window: 50       # lookback bars for realized vol estimate (50h ≈ 2 days)
+  position_vol_ratio_cap: 1.5   # max vol_ratio (prevents extreme sizing in ultra-low-vol regimes)
+  position_vol_floor: 0.005     # min realized vol (prevents division by near-zero in quiet markets)
+  # ── Regime Classifier ──
+  regime_vol_window: 40         # rolling window for volatility regime (lowered for faster adaptation)
+  regime_trend_window: 40       # rolling window for trend detection (lowered for real-data responsiveness)
+  regime_high_vol_pct: 70       # percentile threshold for high-vol regime
+  regime_low_vol_pct: 30        # percentile threshold for low-vol regime
+  regime_trend_threshold: 0.15  # normalized trend strength threshold (lowered from 0.3)
+  regime_min_bars: 30           # minimum bars required for classification
+  default_synthetic_bars: 2000
+  default_symbols: 10
+  output_dir: "docs"
 
 # DYNAMIC DISCOVERY - resolved at runtime
 symbols:

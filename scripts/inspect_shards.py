@@ -20,7 +20,9 @@ os.makedirs(logs_dir, exist_ok=True)
 
 print("=== RAW SHARDS INSPECTION (taker/quote/trades) ===\n")
 
-files = sorted(glob.glob(os.path.join(shards_dir, "*_1h.parquet")))
+tf = cfg["project"]["timeframe"]
+suffix_replace = f"_{tf}.parquet"
+files = sorted(glob.glob(os.path.join(shards_dir, f"*{suffix_replace}")))
 print("Files found:")
 for f in files:
     print(f"  {os.path.basename(f)}  ({os.path.getsize(f)/1024/1024:.2f} MB)")
@@ -34,7 +36,7 @@ missing_taker_ratios = []
 
 for path in files:
     fname = os.path.basename(path)
-    sym = fname.replace("_1h.parquet", "")
+    sym = fname.replace(suffix_replace, "")
     df = pd.read_parquet(path)
     total_rows = len(df)
     cols = df.columns.tolist()

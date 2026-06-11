@@ -1,0 +1,1070 @@
+﻿=== RAW SHARDS INSPECTION (taker/quote/trades) ===
+
+Files found:
+  0G_USDT_1h.parquet  (0.60 MB)
+  1000000BOB_USDT_1h.parquet  (0.78 MB)
+  1000000MOG_USDT_1h.parquet  (1.32 MB)
+  1000BONK_USDT_1h.parquet  (2.35 MB)
+  1000CAT_USDT_1h.parquet  (1.35 MB)
+  1000CHEEMS_USDT_1h.parquet  (1.34 MB)
+  1000FLOKI_USDT_1h.parquet  (2.60 MB)
+  1000LUNC_USDT_1h.parquet  (3.00 MB)
+  1000PEPE_USDT_1h.parquet  (3.14 MB)
+  1000RATS_USDT_1h.parquet  (2.06 MB)
+  1000SATS_USDT_1h.parquet  (2.18 MB)
+  1000SHIB_USDT_1h.parquet  (4.50 MB)
+  1000XEC_USDT_1h.parquet  (3.55 MB)
+  1INCH_USDT_1h.parquet  (4.13 MB)
+  1MBABYDOGE_USDT_1h.parquet  (1.55 MB)
+  2Z_USDT_1h.parquet  (0.57 MB)
+  4_USDT_1h.parquet  (0.58 MB)
+  AAVE_USDT_1h.parquet  (4.34 MB)
+  ACE_USDT_1h.parquet  (2.17 MB)
+  ACH_USDT_1h.parquet  (2.75 MB)
+  ACT_USDT_1h.parquet  (1.29 MB)
+  ACU_USDT_1h.parquet  (0.31 MB)
+  ACX_USDT_1h.parquet  (1.19 MB)
+  ADA_USDT_1h.parquet  (4.95 MB)
+  AERGO_USDT_1h.parquet  (0.90 MB)
+  AERO_USDT_1h.parquet  (1.25 MB)
+  AEVO_USDT_1h.parquet  (1.85 MB)
+  AGLD_USDT_1h.parquet  (2.19 MB)
+  AGT_USDT_1h.parquet  (0.90 MB)
+  AIA_USDT_1h.parquet  (0.33 MB)
+  AIN_USDT_1h.parquet  (0.74 MB)
+  AIOT_USDT_1h.parquet  (0.93 MB)
+  AIO_USDT_1h.parquet  (0.66 MB)
+  AIXBT_USDT_1h.parquet  (1.27 MB)
+  AKE_USDT_1h.parquet  (0.60 MB)
+  AKT_USDT_1h.parquet  (1.18 MB)
+  ALCH_USDT_1h.parquet  (1.18 MB)
+  ALGO_USDT_1h.parquet  (4.72 MB)
+  ALICE_USDT_1h.parquet  (3.86 MB)
+  ALLO_USDT_1h.parquet  (0.47 MB)
+  ALL_USDT_1h.parquet  (0.60 MB)
+  ALPINE_USDT_1h.parquet  (0.87 MB)
+  ALT_USDT_1h.parquet  (1.99 MB)
+  AMZN_USDT_1h.parquet  (0.25 MB)
+  ANIME_USDT_1h.parquet  (1.10 MB)
+  ANKR_USDT_1h.parquet  (4.21 MB)
+  APE_USDT_1h.parquet  (3.26 MB)
+  API3_USDT_1h.parquet  (3.41 MB)
+  APR_USDT_1h.parquet  (0.54 MB)
+  APT_USDT_1h.parquet  (3.15 MB)
+  ARB_USDT_1h.parquet  (2.74 MB)
+  ARC_USDT_1h.parquet  (1.17 MB)
+  ARIA_USDT_1h.parquet  (0.63 MB)
+  ARKM_USDT_1h.parquet  (2.27 MB)
+  ARK_USDT_1h.parquet  (2.03 MB)
+  ARPA_USDT_1h.parquet  (3.52 MB)
+  AR_USDT_1h.parquet  (3.67 MB)
+  ASR_USDT_1h.parquet  (0.78 MB)
+  ASTER_USDT_1h.parquet  (0.59 MB)
+  ASTR_USDT_1h.parquet  (2.78 MB)
+  ATH_USDT_1h.parquet  (0.95 MB)
+  ATOM_USDT_1h.parquet  (4.95 MB)
+  AT_USDT_1h.parquet  (0.50 MB)
+  AUCTION_USDT_1h.parquet  (2.06 MB)
+  AVAAI_USDT_1h.parquet  (1.13 MB)
+  AVAX_USDT_1h.parquet  (4.54 MB)
+  AVA_USDT_1h.parquet  (1.14 MB)
+  AVNT_USDT_1h.parquet  (0.60 MB)
+  AWE_USDT_1h.parquet  (0.84 MB)
+  AXL_USDT_1h.parquet  (1.87 MB)
+  AXS_USDT_1h.parquet  (4.11 MB)
+  AZTEC_USDT_1h.parquet  (0.25 MB)
+  A_USDT_1h.parquet  (0.82 MB)
+  B2_USDT_1h.parquet  (0.82 MB)
+  BABY_USDT_1h.parquet  (0.94 MB)
+  BANANAS31_USDT_1h.parquet  (1.05 MB)
+  BANANA_USDT_1h.parquet  (1.49 MB)
+  BAND_USDT_1h.parquet  (4.80 MB)
+  BANK_USDT_1h.parquet  (0.95 MB)
+  BAN_USDT_1h.parquet  (1.20 MB)
+  BARD_USDT_1h.parquet  (0.57 MB)
+  BAS_USDT_1h.parquet  (0.70 MB)
+  BAT_USDT_1h.parquet  (4.55 MB)
+  BB_USDT_1h.parquet  (1.73 MB)
+  BCH_USDT_1h.parquet  (5.24 MB)
+  BEAMX_USDT_1h.parquet  (2.21 MB)
+  BEAT_USDT_1h.parquet  (0.50 MB)
+  BEL_USDT_1h.parquet  (4.18 MB)
+  BERA_USDT_1h.parquet  (1.09 MB)
+  BICO_USDT_1h.parquet  (2.01 MB)
+  BIGTIME_USDT_1h.parquet  (2.15 MB)
+  BIO_USDT_1h.parquet  (1.20 MB)
+  BIRB_USDT_1h.parquet  (0.30 MB)
+  BLESS_USDT_1h.parquet  (0.60 MB)
+  BLUAI_USDT_1h.parquet  (0.54 MB)
+  BLUR_USDT_1h.parquet  (2.50 MB)
+  BMT_USDT_1h.parquet  (0.95 MB)
+  BNB_USDT_1h.parquet  (5.27 MB)
+  BNT_USDT_1h.parquet  (2.17 MB)
+  BOME_USDT_1h.parquet  (1.97 MB)
+  BRETT_USDT_1h.parquet  (1.49 MB)
+  BREV_USDT_1h.parquet  (0.32 MB)
+  BROCCOLI714_USDT_1h.parquet  (0.94 MB)
+  BROCCOLIF3B_USDT_1h.parquet  (1.02 MB)
+  BR_USDT_1h.parquet  (0.95 MB)
+  BSV_USDT_1h.parquet  (1.81 MB)
+  BTCDOM_USDT_1h.parquet  (3.63 MB)
+  BTC_USDT_1h.parquet  (6.07 MB)
+  BTR_USDT_1h.parquet  (0.64 MB)
+  BULLA_USDT_1h.parquet  (0.76 MB)
+  B_USDT_1h.parquet  (0.83 MB)
+  C98_USDT_1h.parquet  (3.52 MB)
+  CAKE_USDT_1h.parquet  (2.09 MB)
+  CARV_USDT_1h.parquet  (0.61 MB)
+  CATI_USDT_1h.parquet  (1.33 MB)
+  CC_USDT_1h.parquet  (0.50 MB)
+  CELO_USDT_1h.parquet  (3.41 MB)
+  CELR_USDT_1h.parquet  (3.94 MB)
+  CETUS_USDT_1h.parquet  (1.30 MB)
+  CFG_USDT_1h.parquet  (0.18 MB)
+  CFX_USDT_1h.parquet  (2.71 MB)
+  CGPT_USDT_1h.parquet  (1.17 MB)
+  CHILLGUY_USDT_1h.parquet  (1.24 MB)
+  CHR_USDT_1h.parquet  (3.76 MB)
+  CHZ_USDT_1h.parquet  (4.44 MB)
+  CKB_USDT_1h.parquet  (2.69 MB)
+  CLANKER_USDT_1h.parquet  (0.42 MB)
+  CLO_USDT_1h.parquet  (0.55 MB)
+  COAI_USDT_1h.parquet  (0.55 MB)
+  COIN_USDT_1h.parquet  (0.26 MB)
+  COLLECT_USDT_1h.parquet  (0.37 MB)
+  COMP_USDT_1h.parquet  (4.79 MB)
+  COOKIE_USDT_1h.parquet  (1.09 MB)
+  COPPER_USDT_1h.parquet  (0.19 MB)
+  COS_USDT_1h.parquet  (1.32 MB)
+  COTI_USDT_1h.parquet  (4.19 MB)
+  COW_USDT_1h.parquet  (1.17 MB)
+  CRCL_USDT_1h.parquet  (0.27 MB)
+  CROSS_USDT_1h.parquet  (0.74 MB)
+  CRV_USDT_1h.parquet  (4.32 MB)
+  CTK_USDT_1h.parquet  (0.77 MB)
+  CTSI_USDT_1h.parquet  (3.27 MB)
+  CVC_USDT_1h.parquet  (0.81 MB)
+  CVX_USDT_1h.parquet  (0.62 MB)
+  CYBER_USDT_1h.parquet  (2.16 MB)
+  CYS_USDT_1h.parquet  (0.39 MB)
+  C_USDT_1h.parquet  (0.75 MB)
+  DASH_USDT_1h.parquet  (4.71 MB)
+  DEEP_USDT_1h.parquet  (0.92 MB)
+  DEXE_USDT_1h.parquet  (1.21 MB)
+  DIA_USDT_1h.parquet  (1.24 MB)
+  DODOX_USDT_1h.parquet  (2.46 MB)
+  DOGE_USDT_1h.parquet  (5.24 MB)
+  DOGS_USDT_1h.parquet  (1.54 MB)
+  DOLO_USDT_1h.parquet  (0.93 MB)
+  DOOD_USDT_1h.parquet  (0.94 MB)
+  DOT_USDT_1h.parquet  (4.62 MB)
+  DRIFT_USDT_1h.parquet  (1.24 MB)
+  DUSK_USDT_1h.parquet  (3.57 MB)
+  DYDX_USDT_1h.parquet  (3.62 MB)
+  DYM_USDT_1h.parquet  (1.96 MB)
+  D_USDT_1h.parquet  (1.13 MB)
+  EDEN_USDT_1h.parquet  (0.56 MB)
+  EDU_USDT_1h.parquet  (2.32 MB)
+  EGLD_USDT_1h.parquet  (4.33 MB)
+  EIGEN_USDT_1h.parquet  (1.48 MB)
+  ELSA_USDT_1h.parquet  (0.30 MB)
+  ENA_USDT_1h.parquet  (1.83 MB)
+  ENJ_USDT_1h.parquet  (4.52 MB)
+  ENSO_USDT_1h.parquet  (0.55 MB)
+  ENS_USDT_1h.parquet  (3.55 MB)
+  EPIC_USDT_1h.parquet  (1.02 MB)
+  ERA_USDT_1h.parquet  (0.66 MB)
+  ESPORTS_USDT_1h.parquet  (0.73 MB)
+  ESP_USDT_1h.parquet  (0.27 MB)
+  ETC_USDT_1h.parquet  (5.12 MB)
+  ETHFI_USDT_1h.parquet  (1.92 MB)
+  ETHW_USDT_1h.parquet  (1.87 MB)
+  ETH_USDT_1h.parquet  (5.99 MB)
+  EUL_USDT_1h.parquet  (0.52 MB)
+  EVAA_USDT_1h.parquet  (0.56 MB)
+  EWJ_USDT_1h.parquet  (0.15 MB)
+  EWY_USDT_1h.parquet  (0.19 MB)
+  FARTCOIN_USDT_1h.parquet  (1.30 MB)
+  FET_USDT_1h.parquet  (2.73 MB)
+  FF_USDT_1h.parquet  (0.57 MB)
+  FHE_USDT_1h.parquet  (0.95 MB)
+  FIDA_USDT_1h.parquet  (1.40 MB)
+  FIGHT_USDT_1h.parquet  (0.33 MB)
+  FIL_USDT_1h.parquet  (4.52 MB)
+  FLOCK_USDT_1h.parquet  (0.57 MB)
+  FLOW_USDT_1h.parquet  (3.16 MB)
+  FLUID_USDT_1h.parquet  (0.51 MB)
+  FLUX_USDT_1h.parquet  (1.29 MB)
+  FOGO_USDT_1h.parquet  (0.32 MB)
+  FOLKS_USDT_1h.parquet  (0.46 MB)
+  FORM_USDT_1h.parquet  (1.02 MB)
+  FRAX_USDT_1h.parquet  (0.30 MB)
+  F_USDT_1h.parquet  (0.82 MB)
+  GALA_USDT_1h.parquet  (3.89 MB)
+  GAS_USDT_1h.parquet  (1.94 MB)
+  GIGGLE_USDT_1h.parquet  (0.55 MB)
+  GLM_USDT_1h.parquet  (1.88 MB)
+  GMT_USDT_1h.parquet  (3.43 MB)
+  GMX_USDT_1h.parquet  (2.64 MB)
+  GOAT_USDT_1h.parquet  (1.34 MB)
+  GPS_USDT_1h.parquet  (1.06 MB)
+  GRASS_USDT_1h.parquet  (1.35 MB)
+  GRIFFAIN_USDT_1h.parquet  (1.19 MB)
+  GRT_USDT_1h.parquet  (4.58 MB)
+  GTC_USDT_1h.parquet  (3.63 MB)
+  GUA_USDT_1h.parquet  (0.40 MB)
+  GUN_USDT_1h.parquet  (0.93 MB)
+  GWEI_USDT_1h.parquet  (0.32 MB)
+  G_USDT_1h.parquet  (1.38 MB)
+  HAEDAL_USDT_1h.parquet  (0.92 MB)
+  HANA_USDT_1h.parquet  (0.56 MB)
+  HBAR_USDT_1h.parquet  (4.30 MB)
+  HEI_USDT_1h.parquet  (1.03 MB)
+  HEMI_USDT_1h.parquet  (0.66 MB)
+  HFT_USDT_1h.parquet  (2.46 MB)
+  HIGH_USDT_1h.parquet  (2.64 MB)
+  HIVE_USDT_1h.parquet  (1.18 MB)
+  HMSTR_USDT_1h.parquet  (1.42 MB)
+  HOLO_USDT_1h.parquet  (0.59 MB)
+  HOME_USDT_1h.parquet  (0.88 MB)
+  HOOD_USDT_1h.parquet  (0.26 MB)
+  HOT_USDT_1h.parquet  (4.16 MB)
+  HUMA_USDT_1h.parquet  (0.93 MB)
+  HYPER_USDT_1h.parquet  (0.86 MB)
+  HYPE_USDT_1h.parquet  (0.96 MB)
+  H_USDT_1h.parquet  (0.85 MB)
+  ICNT_USDT_1h.parquet  (0.69 MB)
+  ICP_USDT_1h.parquet  (2.66 MB)
+  ICX_USDT_1h.parquet  (4.13 MB)
+  IDOL_USDT_1h.parquet  (0.69 MB)
+  ID_USDT_1h.parquet  (2.66 MB)
+  ILV_USDT_1h.parquet  (1.96 MB)
+  IMX_USDT_1h.parquet  (3.32 MB)
+  INIT_USDT_1h.parquet  (0.91 MB)
+  INJ_USDT_1h.parquet  (3.19 MB)
+  INTC_USDT_1h.parquet  (0.27 MB)
+  INX_USDT_1h.parquet  (0.30 MB)
+  IN_USDT_1h.parquet  (0.67 MB)
+  IOST_USDT_1h.parquet  (4.96 MB)
+  IOTA_USDT_1h.parquet  (4.60 MB)
+  IOTX_USDT_1h.parquet  (3.66 MB)
+  IO_USDT_1h.parquet  (1.66 MB)
+  IP_USDT_1h.parquet  (1.17 MB)
+  IRYS_USDT_1h.parquet  (0.46 MB)
+  JASMY_USDT_1h.parquet  (3.54 MB)
+  JCT_USDT_1h.parquet  (0.48 MB)
+  JELLYJELLY_USDT_1h.parquet  (0.99 MB)
+  JOE_USDT_1h.parquet  (2.50 MB)
+  JST_USDT_1h.parquet  (0.94 MB)
+  JTO_USDT_1h.parquet  (2.06 MB)
+  JUP_USDT_1h.parquet  (1.88 MB)
+  KAIA_USDT_1h.parquet  (1.11 MB)
+  KAITO_USDT_1h.parquet  (1.11 MB)
+  KAS_USDT_1h.parquet  (2.09 MB)
+  KAT_USDT_1h.parquet  (0.22 MB)
+  KAVA_USDT_1h.parquet  (4.78 MB)
+  KERNEL_USDT_1h.parquet  (0.89 MB)
+  KGEN_USDT_1h.parquet  (0.56 MB)
+  KITE_USDT_1h.parquet  (0.54 MB)
+  KMNO_USDT_1h.parquet  (1.15 MB)
+  KNC_USDT_1h.parquet  (4.41 MB)
+  KOMA_USDT_1h.parquet  (1.17 MB)
+  KSM_USDT_1h.parquet  (4.20 MB)
+  LAB_USDT_1h.parquet  (0.57 MB)
+  LAYER_USDT_1h.parquet  (1.11 MB)
+  LA_USDT_1h.parquet  (0.80 MB)
+  LDO_USDT_1h.parquet  (3.01 MB)
+  LIGHT_USDT_1h.parquet  (0.57 MB)
+  LINEA_USDT_1h.parquet  (0.64 MB)
+  LINK_USDT_1h.parquet  (5.13 MB)
+  LISTA_USDT_1h.parquet  (1.49 MB)
+  LIT_USDT_1h.parquet  (0.38 MB)
+  LPT_USDT_1h.parquet  (3.48 MB)
+  LQTY_USDT_1h.parquet  (2.62 MB)
+  LSK_USDT_1h.parquet  (1.77 MB)
+  LTC_USDT_1h.parquet  (5.00 MB)
+  LUMIA_USDT_1h.parquet  (1.15 MB)
+  LUNA2_USDT_1h.parquet  (2.94 MB)
+  LYN_USDT_1h.parquet  (0.58 MB)
+  MAGIC_USDT_1h.parquet  (2.74 MB)
+  MAGMA_USDT_1h.parquet  (0.37 MB)
+  MANA_USDT_1h.parquet  (3.96 MB)
+  MANTA_USDT_1h.parquet  (2.00 MB)
+  MANTRA_USDT_1h.parquet  (0.21 MB)
+  MASK_USDT_1h.parquet  (3.61 MB)
+  MAVIA_USDT_1h.parquet  (0.91 MB)
+  MAV_USDT_1h.parquet  (2.33 MB)
+  MBOX_USDT_1h.parquet  (1.34 MB)
+  MEGA_USDT_1h.parquet  (0.29 MB)
+  MELANIA_USDT_1h.parquet  (1.12 MB)
+  MEME_USDT_1h.parquet  (2.29 MB)
+  MERL_USDT_1h.parquet  (0.89 MB)
+  METIS_USDT_1h.parquet  (1.68 MB)
+  MET_USDT_1h.parquet  (0.50 MB)
+  MEW_USDT_1h.parquet  (1.67 MB)
+  ME_USDT_1h.parquet  (1.19 MB)
+  MINA_USDT_1h.parquet  (2.55 MB)
+  MIRA_USDT_1h.parquet  (0.54 MB)
+  MITO_USDT_1h.parquet  (0.63 MB)
+  MMT_USDT_1h.parquet  (0.44 MB)
+  MOCA_USDT_1h.parquet  (1.12 MB)
+  MON_USDT_1h.parquet  (0.54 MB)
+  MOODENG_USDT_1h.parquet  (1.41 MB)
+  MORPHO_USDT_1h.parquet  (1.29 MB)
+  MOVE_USDT_1h.parquet  (1.20 MB)
+  MOVR_USDT_1h.parquet  (1.99 MB)
+  MSTR_USDT_1h.parquet  (0.27 MB)
+  MTL_USDT_1h.parquet  (3.89 MB)
+  MUBARAK_USDT_1h.parquet  (0.97 MB)
+  MYX_USDT_1h.parquet  (0.82 MB)
+  M_USDT_1h.parquet  (0.77 MB)
+  NAORIS_USDT_1h.parquet  (0.69 MB)
+  NEAR_USDT_1h.parquet  (4.31 MB)
+  NEIRO_USDT_1h.parquet  (1.62 MB)
+  NEO_USDT_1h.parquet  (4.87 MB)
+  NEWT_USDT_1h.parquet  (0.74 MB)
+  NFP_USDT_1h.parquet  (2.01 MB)
+  NIGHT_USDT_1h.parquet  (0.42 MB)
+  NIL_USDT_1h.parquet  (0.99 MB)
+  NMR_USDT_1h.parquet  (2.22 MB)
+  NOM_USDT_1h.parquet  (0.58 MB)
+  NOT_USDT_1h.parquet  (1.82 MB)
+  NXPC_USDT_1h.parquet  (0.85 MB)
+  OGN_USDT_1h.parquet  (3.76 MB)
+  OG_USDT_1h.parquet  (0.84 MB)
+  ONDO_USDT_1h.parquet  (2.05 MB)
+  ONE_USDT_1h.parquet  (4.06 MB)
+  ONG_USDT_1h.parquet  (2.06 MB)
+  ONT_USDT_1h.parquet  (4.60 MB)
+  ON_USDT_1h.parquet  (0.50 MB)
+  OPEN_USDT_1h.parquet  (0.56 MB)
+  OPN_USDT_1h.parquet  (0.23 MB)
+  OP_USDT_1h.parquet  (3.57 MB)
+  ORCA_USDT_1h.parquet  (1.11 MB)
+  ORDER_USDT_1h.parquet  (0.56 MB)
+  ORDI_USDT_1h.parquet  (2.23 MB)
+  PARTI_USDT_1h.parquet  (0.96 MB)
+  PAXG_USDT_1h.parquet  (1.08 MB)
+  PENDLE_USDT_1h.parquet  (2.44 MB)
+  PENGU_USDT_1h.parquet  (1.36 MB)
+  PEOPLE_USDT_1h.parquet  (3.52 MB)
+  PHA_USDT_1h.parquet  (1.16 MB)
+  PIEVERSE_USDT_1h.parquet  (0.46 MB)
+  PIPPIN_USDT_1h.parquet  (1.15 MB)
+  PIXEL_USDT_1h.parquet  (1.88 MB)
+  PLAY_USDT_1h.parquet  (0.71 MB)
+  PLTR_USDT_1h.parquet  (0.25 MB)
+  PLUME_USDT_1h.parquet  (0.95 MB)
+  PNUT_USDT_1h.parquet  (1.40 MB)
+  POLYX_USDT_1h.parquet  (2.16 MB)
+  POL_USDT_1h.parquet  (1.49 MB)
+  POPCAT_USDT_1h.parquet  (1.45 MB)
+  PORTAL_USDT_1h.parquet  (1.89 MB)
+  POWER_USDT_1h.parquet  (0.45 MB)
+  POWR_USDT_1h.parquet  (1.89 MB)
+  PROMPT_USDT_1h.parquet  (0.90 MB)
+  PROM_USDT_1h.parquet  (1.04 MB)
+  PROVE_USDT_1h.parquet  (0.69 MB)
+  PTB_USDT_1h.parquet  (0.66 MB)
+  PUMPBTC_USDT_1h.parquet  (0.76 MB)
+  PUMP_USDT_1h.parquet  (0.80 MB)
+  PUNDIX_USDT_1h.parquet  (0.78 MB)
+  PYTH_USDT_1h.parquet  (2.12 MB)
+  QNT_USDT_1h.parquet  (2.42 MB)
+  QTUM_USDT_1h.parquet  (4.33 MB)
+  Q_USDT_1h.parquet  (0.68 MB)
+  RARE_USDT_1h.parquet  (1.44 MB)
+  RAVE_USDT_1h.parquet  (0.44 MB)
+  RAYSOL_USDT_1h.parquet  (1.30 MB)
+  RECALL_USDT_1h.parquet  (0.50 MB)
+  RED_USDT_1h.parquet  (0.94 MB)
+  RENDER_USDT_1h.parquet  (1.45 MB)
+  RESOLV_USDT_1h.parquet  (0.86 MB)
+  REZ_USDT_1h.parquet  (1.72 MB)
+  RIF_USDT_1h.parquet  (2.07 MB)
+  RIVER_USDT_1h.parquet  (0.56 MB)
+  RLC_USDT_1h.parquet  (4.68 MB)
+  ROBO_USDT_1h.parquet  (0.23 MB)
+  RONIN_USDT_1h.parquet  (1.88 MB)
+  ROSE_USDT_1h.parquet  (3.50 MB)
+  RPL_USDT_1h.parquet  (1.31 MB)
+  RSR_USDT_1h.parquet  (4.76 MB)
+  RUNE_USDT_1h.parquet  (4.21 MB)
+  RVN_USDT_1h.parquet  (4.03 MB)
+  SAFE_USDT_1h.parquet  (1.19 MB)
+  SAGA_USDT_1h.parquet  (1.88 MB)
+  SAHARA_USDT_1h.parquet  (0.78 MB)
+  SAND_USDT_1h.parquet  (4.49 MB)
+  SANTOS_USDT_1h.parquet  (1.14 MB)
+  SAPIEN_USDT_1h.parquet  (0.68 MB)
+  SCRT_USDT_1h.parquet  (1.12 MB)
+  SCR_USDT_1h.parquet  (1.24 MB)
+  SEI_USDT_1h.parquet  (2.23 MB)
+  SENT_USDT_1h.parquet  (0.45 MB)
+  SFP_USDT_1h.parquet  (3.79 MB)
+  SHELL_USDT_1h.parquet  (0.99 MB)
+  SIGN_USDT_1h.parquet  (0.89 MB)
+  SIREN_USDT_1h.parquet  (1.02 MB)
+  SKL_USDT_1h.parquet  (4.34 MB)
+  SKR_USDT_1h.parquet  (0.33 MB)
+  SKYAI_USDT_1h.parquet  (0.88 MB)
+  SKY_USDT_1h.parquet  (0.58 MB)
+  SLP_USDT_1h.parquet  (0.70 MB)
+  SNX_USDT_1h.parquet  (4.33 MB)
+  SOLV_USDT_1h.parquet  (1.07 MB)
+  SOL_USDT_1h.parquet  (4.92 MB)
+  SOMI_USDT_1h.parquet  (0.61 MB)
+  SONIC_USDT_1h.parquet  (1.12 MB)
+  SOON_USDT_1h.parquet  (0.86 MB)
+  SOPH_USDT_1h.parquet  (0.90 MB)
+  SPACE_USDT_1h.parquet  (0.33 MB)
+  SPELL_USDT_1h.parquet  (3.14 MB)
+  SPK_USDT_1h.parquet  (0.79 MB)
+  SPORTFUN_USDT_1h.parquet  (0.32 MB)
+  SPX_USDT_1h.parquet  (1.22 MB)
+  SQD_USDT_1h.parquet  (0.82 MB)
+  SSV_USDT_1h.parquet  (2.67 MB)
+  STABLE_USDT_1h.parquet  (0.51 MB)
+  STBL_USDT_1h.parquet  (0.59 MB)
+  STEEM_USDT_1h.parquet  (2.01 MB)
+  STG_USDT_1h.parquet  (2.78 MB)
+  STORJ_USDT_1h.parquet  (4.22 MB)
+  STO_USDT_1h.parquet  (0.95 MB)
+  STRK_USDT_1h.parquet  (1.92 MB)
+  STX_USDT_1h.parquet  (2.64 MB)
+  SUI_USDT_1h.parquet  (2.82 MB)
+  SUN_USDT_1h.parquet  (1.47 MB)
+  SUPER_USDT_1h.parquet  (1.95 MB)
+  SUSHI_USDT_1h.parquet  (4.39 MB)
+  SWARMS_USDT_1h.parquet  (1.14 MB)
+  SXT_USDT_1h.parquet  (0.89 MB)
+  SYN_USDT_1h.parquet  (1.37 MB)
+  SYRUP_USDT_1h.parquet  (0.96 MB)
+  S_USDT_1h.parquet  (1.11 MB)
+  TAC_USDT_1h.parquet  (0.71 MB)
+  TAG_USDT_1h.parquet  (0.76 MB)
+  TAIKO_USDT_1h.parquet  (0.70 MB)
+  TAKE_USDT_1h.parquet  (0.63 MB)
+  TAO_USDT_1h.parquet  (1.93 MB)
+  TA_USDT_1h.parquet  (0.71 MB)
+  THETA_USDT_1h.parquet  (4.84 MB)
+  THE_USDT_1h.parquet  (1.23 MB)
+  TIA_USDT_1h.parquet  (2.31 MB)
+  TLM_USDT_1h.parquet  (2.56 MB)
+  TNSR_USDT_1h.parquet  (1.80 MB)
+  TON_USDT_1h.parquet  (2.05 MB)
+  TOSHI_USDT_1h.parquet  (0.61 MB)
+  TOWNS_USDT_1h.parquet  (0.68 MB)
+  TRADOOR_USDT_1h.parquet  (0.54 MB)
+  TRB_USDT_1h.parquet  (4.51 MB)
+  TREE_USDT_1h.parquet  (0.66 MB)
+  TRIA_USDT_1h.parquet  (0.28 MB)
+  TRUMP_USDT_1h.parquet  (1.23 MB)
+  TRUST_USDT_1h.parquet  (0.44 MB)
+  TRUTH_USDT_1h.parquet  (0.60 MB)
+  TRX_USDT_1h.parquet  (4.92 MB)
+  TSLA_USDT_1h.parquet  (0.30 MB)
+  TST_USDT_1h.parquet  (1.05 MB)
+  TURBO_USDT_1h.parquet  (1.92 MB)
+  TURTLE_USDT_1h.parquet  (0.49 MB)
+  TUT_USDT_1h.parquet  (0.94 MB)
+  TWT_USDT_1h.parquet  (1.90 MB)
+  T_USDT_1h.parquet  (2.52 MB)
+  UAI_USDT_1h.parquet  (0.45 MB)
+  UB_USDT_1h.parquet  (0.62 MB)
+  UMA_USDT_1h.parquet  (2.11 MB)
+  UNI_USDT_1h.parquet  (4.30 MB)
+  USDC_USDT_1h.parquet  (2.25 MB)
+  USELESS_USDT_1h.parquet  (0.67 MB)
+  USTC_USDT_1h.parquet  (2.08 MB)
+  USUAL_USDT_1h.parquet  (1.17 MB)
+  US_USDT_1h.parquet  (0.40 MB)
+  VANA_USDT_1h.parquet  (1.18 MB)
+  VANRY_USDT_1h.parquet  (1.84 MB)
+  VELODROME_USDT_1h.parquet  (1.13 MB)
+  VELVET_USDT_1h.parquet  (0.74 MB)
+  VET_USDT_1h.parquet  (5.08 MB)
+  VIC_USDT_1h.parquet  (0.90 MB)
+  VIRTUAL_USDT_1h.parquet  (1.33 MB)
+  VTHO_USDT_1h.parquet  (1.10 MB)
+  VVV_USDT_1h.parquet  (1.11 MB)
+  WAL_USDT_1h.parquet  (0.92 MB)
+  WAXP_USDT_1h.parquet  (2.03 MB)
+  WCT_USDT_1h.parquet  (0.91 MB)
+  WET_USDT_1h.parquet  (0.41 MB)
+  WIF_USDT_1h.parquet  (2.18 MB)
+  WLD_USDT_1h.parquet  (2.51 MB)
+  WLFI_USDT_1h.parquet  (0.61 MB)
+  WOO_USDT_1h.parquet  (3.38 MB)
+  W_USDT_1h.parquet  (1.91 MB)
+  XAG_USDT_1h.parquet  (0.37 MB)
+  XAI_USDT_1h.parquet  (1.97 MB)
+  XAN_USDT_1h.parquet  (0.58 MB)
+  XAU_USDT_1h.parquet  (0.45 MB)
+  XLM_USDT_1h.parquet  (4.99 MB)
+  XMR_USDT_1h.parquet  (4.85 MB)
+  XNY_USDT_1h.parquet  (0.69 MB)
+  XPD_USDT_1h.parquet  (0.30 MB)
+  XPIN_USDT_1h.parquet  (0.61 MB)
+  XPL_USDT_1h.parquet  (0.64 MB)
+  XPT_USDT_1h.parquet  (0.31 MB)
+  XRP_USDT_1h.parquet  (5.21 MB)
+  XTZ_USDT_1h.parquet  (4.34 MB)
+  XVG_USDT_1h.parquet  (2.47 MB)
+  XVS_USDT_1h.parquet  (2.31 MB)
+  YB_USDT_1h.parquet  (0.50 MB)
+  YFI_USDT_1h.parquet  (4.16 MB)
+  YGG_USDT_1h.parquet  (2.19 MB)
+  ZAMA_USDT_1h.parquet  (0.33 MB)
+  ZBT_USDT_1h.parquet  (0.52 MB)
+  ZEC_USDT_1h.parquet  (4.90 MB)
+  ZEN_USDT_1h.parquet  (4.25 MB)
+  ZEREBRO_USDT_1h.parquet  (1.16 MB)
+  ZETA_USDT_1h.parquet  (1.82 MB)
+  ZIL_USDT_1h.parquet  (4.59 MB)
+  ZKC_USDT_1h.parquet  (0.56 MB)
+  ZKP_USDT_1h.parquet  (0.39 MB)
+  ZK_USDT_1h.parquet  (1.65 MB)
+  ZORA_USDT_1h.parquet  (0.72 MB)
+  ZRO_USDT_1h.parquet  (1.73 MB)
+  ZRX_USDT_1h.parquet  (4.56 MB)
+  σ╕üσ«ëΣ║║τöƒ_USDT_1h.parquet  (0.57 MB)
+  µêæΦ╕ÅΘ⌐¼µ¥ÑΣ║å_USDT_1h.parquet  (0.33 MB)
+  Θ╛ÖΦÖ╛_USDT_1h.parquet  (0.22 MB)
+
+======================================================================
+0G_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6291, missing_ratio=0.0000
+1000000BOB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8794, missing_ratio=0.0000
+1000000MOG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13830, missing_ratio=0.0000
+1000BONK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22252, missing_ratio=0.0000
+1000CAT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14238, missing_ratio=0.0000
+1000CHEEMS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13399, missing_ratio=0.0000
+1000FLOKI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27050, missing_ratio=0.0000
+1000LUNC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=32788, missing_ratio=0.0000
+1000PEPE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27074, missing_ratio=0.0000
+1000RATS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21700, missing_ratio=0.0000
+1000SATS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21772, missing_ratio=0.0000
+1000SHIB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=44472, missing_ratio=0.0000
+1000XEC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41366, missing_ratio=0.0000
+1INCH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=47743, missing_ratio=0.0000
+1MBABYDOGE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15079, missing_ratio=0.0000
+2Z_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5934, missing_ratio=0.0000
+4_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5791, missing_ratio=0.0000
+AAVE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49426, missing_ratio=0.0000
+ACE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21632, missing_ratio=0.0000
+ACH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28803, missing_ratio=0.0000
+ACT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13734, missing_ratio=0.0000
+ACU_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3270, missing_ratio=0.0000
+ACX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13131, missing_ratio=0.0000
+ADA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+AERGO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9991, missing_ratio=0.0000
+AERO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13180, missing_ratio=0.0000
+AEVO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19565, missing_ratio=0.0000
+AGLD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25048, missing_ratio=0.0000
+AGT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9176, missing_ratio=0.0000
+AIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3295, missing_ratio=0.0000
+AIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7952, missing_ratio=0.0000
+AIOT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9654, missing_ratio=0.0000
+AIO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7135, missing_ratio=0.0000
+AIXBT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12792, missing_ratio=0.0000
+AKE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6078, missing_ratio=0.0000
+AKT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13567, missing_ratio=0.0000
+ALCH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12367, missing_ratio=0.0000
+ALGO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52352, missing_ratio=0.0000
+ALICE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45806, missing_ratio=0.0000
+ALLO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4972, missing_ratio=0.0000
+ALL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7305, missing_ratio=0.0000
+ALPINE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9513, missing_ratio=0.0000
+ALT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20716, missing_ratio=0.0000
+AMZN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2812, missing_ratio=0.0000
+ANIME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11977, missing_ratio=0.0000
+ANKR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=46978, missing_ratio=0.0000
+APE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=37010, missing_ratio=0.0000
+API3_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=37574, missing_ratio=0.0000
+APR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5432, missing_ratio=0.0000
+APT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=31839, missing_ratio=0.0000
+ARB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28106, missing_ratio=0.0000
+ARC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12125, missing_ratio=0.0000
+ARIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6631, missing_ratio=0.0000
+ARKM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25072, missing_ratio=0.0000
+ARK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=23788, missing_ratio=0.0000
+ARPA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=40598, missing_ratio=0.0000
+AR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41102, missing_ratio=0.0000
+ASR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9513, missing_ratio=0.0000
+ASTER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6246, missing_ratio=0.0000
+ASTR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=29007, missing_ratio=0.0000
+ATH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10323, missing_ratio=0.0000
+ATOM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+AT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5287, missing_ratio=0.0000
+AUCTION_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21701, missing_ratio=0.0000
+AVAAI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12125, missing_ratio=0.0000
+AVAX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49978, missing_ratio=0.0000
+AVA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12965, missing_ratio=0.0000
+AVNT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6483, missing_ratio=0.0000
+AWE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9154, missing_ratio=0.0000
+AXL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19851, missing_ratio=0.0000
+AXS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=48586, missing_ratio=0.0000
+AZTEC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2774, missing_ratio=0.0000
+A_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8986, missing_ratio=0.0000
+B2_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9509, missing_ratio=0.0000
+BABY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10253, missing_ratio=0.0000
+BANANAS31_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10593, missing_ratio=0.0000
+BANANA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15856, missing_ratio=0.0000
+BAND_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=51322, missing_ratio=0.0000
+BANK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9936, missing_ratio=0.0000
+BAN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13567, missing_ratio=0.0000
+BARD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6271, missing_ratio=0.0000
+BAS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6821, missing_ratio=0.0000
+BAT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+BB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=18102, missing_ratio=0.0000
+BCH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+BEAMX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22373, missing_ratio=0.0000
+BEAT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4950, missing_ratio=0.0000
+BEL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=48634, missing_ratio=0.0000
+BERA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11643, missing_ratio=0.0000
+BICO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=23574, missing_ratio=0.0000
+BIGTIME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=23236, missing_ratio=0.0000
+BIO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12462, missing_ratio=0.0000
+BIRB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3085, missing_ratio=0.0000
+BLESS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6153, missing_ratio=0.0000
+BLUAI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5479, missing_ratio=0.0000
+BLUR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27246, missing_ratio=0.0000
+BMT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10709, missing_ratio=0.0000
+BNB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+BNT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=24750, missing_ratio=0.0000
+BOME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19494, missing_ratio=0.0000
+BRETT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15728, missing_ratio=0.0000
+BREV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3800, missing_ratio=0.0000
+BROCCOLI714_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10617, missing_ratio=0.0000
+BROCCOLIF3B_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10617, missing_ratio=0.0000
+BR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10614, missing_ratio=0.0000
+BSV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=23046, missing_ratio=0.0000
+BTCDOM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=43478, missing_ratio=0.0000
+BTC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+BTR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6800, missing_ratio=0.0000
+BULLA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8097, missing_ratio=0.0000
+B_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9122, missing_ratio=0.0000
+C98_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41942, missing_ratio=0.0000
+CAKE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22734, missing_ratio=0.0000
+CARV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7274, missing_ratio=0.0000
+CATI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14983, missing_ratio=0.0000
+CC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5238, missing_ratio=0.0000
+CELO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41126, missing_ratio=0.0000
+CELR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45490, missing_ratio=0.0000
+CETUS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13852, missing_ratio=0.0000
+CFG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=1973, missing_ratio=0.0000
+CFX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28851, missing_ratio=0.0000
+CGPT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12791, missing_ratio=0.0000
+CHILLGUY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13348, missing_ratio=0.0000
+CHR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45898, missing_ratio=0.0000
+CHZ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=47098, missing_ratio=0.0000
+CKB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28661, missing_ratio=0.0000
+CLANKER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4950, missing_ratio=0.0000
+CLO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5647, missing_ratio=0.0000
+COAI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6107, missing_ratio=0.0000
+COIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2811, missing_ratio=0.0000
+COLLECT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3773, missing_ratio=0.0000
+COMP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52016, missing_ratio=0.0000
+COOKIE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12367, missing_ratio=0.0000
+COPPER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2217, missing_ratio=0.0000
+COS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14741, missing_ratio=0.0000
+COTI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45946, missing_ratio=0.0000
+COW_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13853, missing_ratio=0.0000
+CRCL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2812, missing_ratio=0.0000
+CROSS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7952, missing_ratio=0.0000
+CRV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50506, missing_ratio=0.0000
+CTK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9656, missing_ratio=0.0000
+CTSI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=40430, missing_ratio=0.0000
+CVC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9274, missing_ratio=0.0000
+CVX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7639, missing_ratio=0.0000
+CYBER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=24486, missing_ratio=0.0000
+CYS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4231, missing_ratio=0.0000
+C_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7833, missing_ratio=0.0000
+DASH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+DEEP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9850, missing_ratio=0.0000
+DEXE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12703, missing_ratio=0.0000
+DIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14694, missing_ratio=0.0000
+DODOX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=24798, missing_ratio=0.0000
+DOGE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=51776, missing_ratio=0.0000
+DOGS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15582, missing_ratio=0.0000
+DOLO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9639, missing_ratio=0.0000
+DOOD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9437, missing_ratio=0.0000
+DOT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50746, missing_ratio=0.0000
+DRIFT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13803, missing_ratio=0.0000
+DUSK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=38678, missing_ratio=0.0000
+DYDX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41534, missing_ratio=0.0000
+DYM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20411, missing_ratio=0.0000
+D_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12320, missing_ratio=0.0000
+EDEN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5983, missing_ratio=0.0000
+EDU_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27198, missing_ratio=0.0000
+EGLD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50194, missing_ratio=0.0000
+EIGEN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14724, missing_ratio=0.0000
+ELSA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3251, missing_ratio=0.0000
+ENA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19086, missing_ratio=0.0000
+ENJ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49834, missing_ratio=0.0000
+ENSO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5649, missing_ratio=0.0000
+ENS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=39590, missing_ratio=0.0000
+EPIC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10810, missing_ratio=0.0000
+ERA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7779, missing_ratio=0.0000
+ESPORTS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7496, missing_ratio=0.0000
+ESP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2794, missing_ratio=0.0000
+ETC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+ETHFI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19443, missing_ratio=0.0000
+ETHW_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22110, missing_ratio=0.0000
+ETH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+EUL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5668, missing_ratio=0.0000
+EVAA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5912, missing_ratio=0.0000
+EWJ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=1901, missing_ratio=0.0000
+EWY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=1973, missing_ratio=0.0000
+FARTCOIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12792, missing_ratio=0.0000
+FET_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=29679, missing_ratio=0.0000
+FF_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6005, missing_ratio=0.0000
+FHE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10083, missing_ratio=0.0000
+FIDA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15006, missing_ratio=0.0000
+FIGHT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3222, missing_ratio=0.0000
+FIL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49427, missing_ratio=0.0000
+FLOCK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6492, missing_ratio=0.0000
+FLOW_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=37862, missing_ratio=0.0000
+FLUID_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6128, missing_ratio=0.0000
+FLUX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15395, missing_ratio=0.0000
+FOGO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3532, missing_ratio=0.0000
+FOLKS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5094, missing_ratio=0.0000
+FORM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10666, missing_ratio=0.0000
+FRAX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3418, missing_ratio=0.0000
+F_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8478, missing_ratio=0.0000
+GALA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41342, missing_ratio=0.0000
+GAS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22936, missing_ratio=0.0000
+GIGGLE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5769, missing_ratio=0.0000
+GLM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20048, missing_ratio=0.0000
+GMT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=37069, missing_ratio=0.0000
+GMX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28923, missing_ratio=0.0000
+GOAT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14165, missing_ratio=0.0000
+GPS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11377, missing_ratio=0.0000
+GRASS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13803, missing_ratio=0.0000
+GRIFFAIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12485, missing_ratio=0.0000
+GRT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=47890, missing_ratio=0.0000
+GTC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=43718, missing_ratio=0.0000
+GUA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4016, missing_ratio=0.0000
+GUN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10373, missing_ratio=0.0000
+GWEI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3085, missing_ratio=0.0000
+G_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15846, missing_ratio=0.0000
+HAEDAL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9639, missing_ratio=0.0000
+HANA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6079, missing_ratio=0.0000
+HBAR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45778, missing_ratio=0.0000
+HEI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11481, missing_ratio=0.0000
+HEMI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6758, missing_ratio=0.0000
+HFT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27774, missing_ratio=0.0000
+HIGH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=29175, missing_ratio=0.0000
+HIVE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12727, missing_ratio=0.0000
+HMSTR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14838, missing_ratio=0.0000
+HOLO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6438, missing_ratio=0.0000
+HOME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8671, missing_ratio=0.0000
+HOOD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2980, missing_ratio=0.0000
+HOT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45466, missing_ratio=0.0000
+HUMA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9029, missing_ratio=0.0000
+HYPER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9845, missing_ratio=0.0000
+HYPE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8936, missing_ratio=0.0000
+H_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8313, missing_ratio=0.0000
+ICNT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8117, missing_ratio=0.0000
+ICP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=32367, missing_ratio=0.0000
+ICX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50171, missing_ratio=0.0000
+IDOL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8097, missing_ratio=0.0000
+ID_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28107, missing_ratio=0.0000
+ILV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22538, missing_ratio=0.0000
+IMX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=37838, missing_ratio=0.0000
+INIT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9996, missing_ratio=0.0000
+INJ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=33351, missing_ratio=0.0000
+INTC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2980, missing_ratio=0.0000
+INX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3047, missing_ratio=0.0000
+IN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7280, missing_ratio=0.0000
+IOST_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+IOTA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+IOTX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=42230, missing_ratio=0.0000
+IO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=17404, missing_ratio=0.0000
+IP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11473, missing_ratio=0.0000
+IRYS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4610, missing_ratio=0.0000
+JASMY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=36206, missing_ratio=0.0000
+JCT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5000, missing_ratio=0.0000
+JELLYJELLY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10490, missing_ratio=0.0000
+JOE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27966, missing_ratio=0.0000
+JST_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9705, missing_ratio=0.0000
+JTO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21872, missing_ratio=0.0000
+JUP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20568, missing_ratio=0.0000
+KAIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13180, missing_ratio=0.0000
+KAITO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11309, missing_ratio=0.0000
+KAS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22384, missing_ratio=0.0000
+KAT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2317, missing_ratio=0.0000
+KAVA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=51346, missing_ratio=0.0000
+KERNEL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10038, missing_ratio=0.0000
+KGEN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5812, missing_ratio=0.0000
+KITE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5288, missing_ratio=0.0000
+KMNO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12791, missing_ratio=0.0000
+KNC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52209, missing_ratio=0.0000
+KOMA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13038, missing_ratio=0.0000
+KSM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49474, missing_ratio=0.0000
+LAB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5572, missing_ratio=0.0000
+LAYER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11523, missing_ratio=0.0000
+LA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8793, missing_ratio=0.0000
+LDO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=32477, missing_ratio=0.0000
+LIGHT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6055, missing_ratio=0.0000
+LINEA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6682, missing_ratio=0.0000
+LINK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+LISTA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=17190, missing_ratio=0.0000
+LIT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3961, missing_ratio=0.0000
+LPT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=40046, missing_ratio=0.0000
+LQTY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28421, missing_ratio=0.0000
+LSK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20716, missing_ratio=0.0000
+LTC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+LUMIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12847, missing_ratio=0.0000
+LUNA2_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=32774, missing_ratio=0.0000
+LYN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5843, missing_ratio=0.0000
+MAGIC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=29486, missing_ratio=0.0000
+MAGMA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3773, missing_ratio=0.0000
+MANA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45826, missing_ratio=0.0000
+MANTA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20884, missing_ratio=0.0000
+MANTRA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2266, missing_ratio=0.0000
+MASK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=41870, missing_ratio=0.0000
+MAVIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10489, missing_ratio=0.0000
+MAV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25758, missing_ratio=0.0000
+MBOX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15537, missing_ratio=0.0000
+MEGA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3054, missing_ratio=0.0000
+MELANIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12057, missing_ratio=0.0000
+MEME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22710, missing_ratio=0.0000
+MERL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8962, missing_ratio=0.0000
+METIS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19594, missing_ratio=0.0000
+MET_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5718, missing_ratio=0.0000
+MEW_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=17260, missing_ratio=0.0000
+ME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13033, missing_ratio=0.0000
+MINA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=29166, missing_ratio=0.0000
+MIRA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6078, missing_ratio=0.0000
+MITO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6770, missing_ratio=0.0000
+MMT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5142, missing_ratio=0.0000
+MOCA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12895, missing_ratio=0.0000
+MON_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5747, missing_ratio=0.0000
+MOODENG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14144, missing_ratio=0.0000
+MORPHO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13348, missing_ratio=0.0000
+MOVE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13060, missing_ratio=0.0000
+MOVR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21438, missing_ratio=0.0000
+MSTR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2812, missing_ratio=0.0000
+MTL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45442, missing_ratio=0.0000
+MUBARAK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10709, missing_ratio=0.0000
+MYX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8478, missing_ratio=0.0000
+M_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8025, missing_ratio=0.0000
+NAORIS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7446, missing_ratio=0.0000
+NEAR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49449, missing_ratio=0.0000
+NEIRO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15079, missing_ratio=0.0000
+NEO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+NEWT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8452, missing_ratio=0.0000
+NFP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21413, missing_ratio=0.0000
+NIGHT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4279, missing_ratio=0.0000
+NIL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10541, missing_ratio=0.0000
+NMR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25926, missing_ratio=0.0000
+NOM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5962, missing_ratio=0.0000
+NOT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=18028, missing_ratio=0.0000
+NXPC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9300, missing_ratio=0.0000
+OGN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45418, missing_ratio=0.0000
+OG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9369, missing_ratio=0.0000
+ONDO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20837, missing_ratio=0.0000
+ONE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=45754, missing_ratio=0.0000
+ONG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22133, missing_ratio=0.0000
+ONT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+ON_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5410, missing_ratio=0.0000
+OPEN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6509, missing_ratio=0.0000
+OPN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2523, missing_ratio=0.0000
+OP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=35187, missing_ratio=0.0000
+ORCA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13131, missing_ratio=0.0000
+ORDER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6078, missing_ratio=0.0000
+ORDI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22614, missing_ratio=0.0000
+PARTI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10517, missing_ratio=0.0000
+PAXG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10472, missing_ratio=0.0000
+PENDLE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25072, missing_ratio=0.0000
+PENGU_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12866, missing_ratio=0.0000
+PEOPLE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=39013, missing_ratio=0.0000
+PHA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12559, missing_ratio=0.0000
+PIEVERSE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4903, missing_ratio=0.0000
+PIPPIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11960, missing_ratio=0.0000
+PIXEL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20115, missing_ratio=0.0000
+PLAY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7449, missing_ratio=0.0000
+PLTR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2811, missing_ratio=0.0000
+PLUME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10613, missing_ratio=0.0000
+PNUT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13734, missing_ratio=0.0000
+POLYX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22936, missing_ratio=0.0000
+POL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15150, missing_ratio=0.0000
+POPCAT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15677, missing_ratio=0.0000
+PORTAL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19875, missing_ratio=0.0000
+POWER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4377, missing_ratio=0.0000
+POWR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22888, missing_ratio=0.0000
+PROMPT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10116, missing_ratio=0.0000
+PROM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12174, missing_ratio=0.0000
+PROVE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7321, missing_ratio=0.0000
+PTB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6630, missing_ratio=0.0000
+PUMPBTC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8600, missing_ratio=0.0000
+PUMP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7955, missing_ratio=0.0000
+PUNDIX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9656, missing_ratio=0.0000
+PYTH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22252, missing_ratio=0.0000
+QNT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=31815, missing_ratio=0.0000
+QTUM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+Q_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6659, missing_ratio=0.0000
+RARE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15845, missing_ratio=0.0000
+RAVE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4179, missing_ratio=0.0000
+RAYSOL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13038, missing_ratio=0.0000
+RECALL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5622, missing_ratio=0.0000
+RED_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10970, missing_ratio=0.0000
+RENDER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=16328, missing_ratio=0.0000
+RESOLV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8669, missing_ratio=0.0000
+REZ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=18412, missing_ratio=0.0000
+RIF_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=23022, missing_ratio=0.0000
+RIVER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5572, missing_ratio=0.0000
+RLC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=51274, missing_ratio=0.0000
+ROBO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2386, missing_ratio=0.0000
+RONIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20438, missing_ratio=0.0000
+ROSE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=38846, missing_ratio=0.0000
+RPL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15246, missing_ratio=0.0000
+RSR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=49354, missing_ratio=0.0000
+RUNE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50434, missing_ratio=0.0000
+RVN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=46306, missing_ratio=0.0000
+SAFE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14142, missing_ratio=0.0000
+SAGA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=18920, missing_ratio=0.0000
+SAHARA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8286, missing_ratio=0.0000
+SAND_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=47002, missing_ratio=0.0000
+SANTOS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14068, missing_ratio=0.0000
+SAPIEN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6961, missing_ratio=0.0000
+SCRT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13495, missing_ratio=0.0000
+SCR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=14216, missing_ratio=0.0000
+SEI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=24592, missing_ratio=0.0000
+SENT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4902, missing_ratio=0.0000
+SFP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=46282, missing_ratio=0.0000
+SHELL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11377, missing_ratio=0.0000
+SIGN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9703, missing_ratio=0.0000
+SIREN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10593, missing_ratio=0.0000
+SKL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=48154, missing_ratio=0.0000
+SKR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3248, missing_ratio=0.0000
+SKYAI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9345, missing_ratio=0.0000
+SKY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6491, missing_ratio=0.0000
+SLP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7639, missing_ratio=0.0000
+SNX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50938, missing_ratio=0.0000
+SOLV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12126, missing_ratio=0.0000
+SOL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50194, missing_ratio=0.0000
+SOMI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6849, missing_ratio=0.0000
+SONIC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12347, missing_ratio=0.0000
+SOON_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9106, missing_ratio=0.0000
+SOPH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8981, missing_ratio=0.0000
+SPACE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3223, missing_ratio=0.0000
+SPELL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=32861, missing_ratio=0.0000
+SPK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8505, missing_ratio=0.0000
+SPORTFUN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3389, missing_ratio=0.0000
+SPX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13038, missing_ratio=0.0000
+SQD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8646, missing_ratio=0.0000
+SSV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28757, missing_ratio=0.0000
+STABLE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5094, missing_ratio=0.0000
+STBL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6301, missing_ratio=0.0000
+STEEM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22588, missing_ratio=0.0000
+STG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=33149, missing_ratio=0.0000
+STORJ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50146, missing_ratio=0.0000
+STO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10084, missing_ratio=0.0000
+STRK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20089, missing_ratio=0.0000
+STX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28827, missing_ratio=0.0000
+SUI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27122, missing_ratio=0.0000
+SUN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15677, missing_ratio=0.0000
+SUPER_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22157, missing_ratio=0.0000
+SUSHI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50434, missing_ratio=0.0000
+SWARMS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12366, missing_ratio=0.0000
+SXT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9610, missing_ratio=0.0000
+SYN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=15822, missing_ratio=0.0000
+SYRUP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=9490, missing_ratio=0.0000
+S_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12152, missing_ratio=0.0000
+TAC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7832, missing_ratio=0.0000
+TAG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7591, missing_ratio=0.0000
+TAIKO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=8646, missing_ratio=0.0000
+TAKE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6631, missing_ratio=0.0000
+TAO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=18868, missing_ratio=0.0000
+TA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7691, missing_ratio=0.0000
+THETA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+THE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13350, missing_ratio=0.0000
+TIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22776, missing_ratio=0.0000
+TLM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27942, missing_ratio=0.0000
+TNSR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=18937, missing_ratio=0.0000
+TON_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19854, missing_ratio=0.0000
+TOSHI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6301, missing_ratio=0.0000
+TOWNS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7324, missing_ratio=0.0000
+TRADOOR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6246, missing_ratio=0.0000
+TRB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50458, missing_ratio=0.0000
+TREE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7492, missing_ratio=0.0000
+TRIA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2886, missing_ratio=0.0000
+TRUMP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12101, missing_ratio=0.0000
+TRUST_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5121, missing_ratio=0.0000
+TRUTH_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5958, missing_ratio=0.0000
+TRX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+TSLA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3100, missing_ratio=0.0000
+TST_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11573, missing_ratio=0.0000
+TURBO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=17691, missing_ratio=0.0000
+TURTLE_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5451, missing_ratio=0.0000
+TUT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10641, missing_ratio=0.0000
+TWT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22708, missing_ratio=0.0000
+T_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=29308, missing_ratio=0.0000
+UAI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5095, missing_ratio=0.0000
+UB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6416, missing_ratio=0.0000
+UMA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=26958, missing_ratio=0.0000
+UNI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50098, missing_ratio=0.0000
+USDC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=28368, missing_ratio=0.0000
+USELESS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7086, missing_ratio=0.0000
+USTC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=22134, missing_ratio=0.0000
+USUAL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12845, missing_ratio=0.0000
+US_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4232, missing_ratio=0.0000
+VANA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12893, missing_ratio=0.0000
+VANRY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19561, missing_ratio=0.0000
+VELODROME_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12962, missing_ratio=0.0000
+VELVET_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7833, missing_ratio=0.0000
+VET_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+VIC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10825, missing_ratio=0.0000
+VIRTUAL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=13038, missing_ratio=0.0000
+VTHO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12009, missing_ratio=0.0000
+VVV_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=11842, missing_ratio=0.0000
+WAL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10467, missing_ratio=0.0000
+WAXP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=23092, missing_ratio=0.0000
+WCT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=10015, missing_ratio=0.0000
+WET_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4283, missing_ratio=0.0000
+WIF_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20884, missing_ratio=0.0000
+WLD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25158, missing_ratio=0.0000
+WLFI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6898, missing_ratio=0.0000
+WOO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=36494, missing_ratio=0.0000
+W_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=19059, missing_ratio=0.0000
+XAG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3608, missing_ratio=0.0000
+XAI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=21100, missing_ratio=0.0000
+XAN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6008, missing_ratio=0.0000
+XAU_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4258, missing_ratio=0.0000
+XLM_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+XMR_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+XNY_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7135, missing_ratio=0.0000
+XPD_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3056, missing_ratio=0.0000
+XPIN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6418, missing_ratio=0.0000
+XPL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6921, missing_ratio=0.0000
+XPT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3056, missing_ratio=0.0000
+XRP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+XTZ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+XVG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=25614, missing_ratio=0.0000
+XVS_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=27616, missing_ratio=0.0000
+YB_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5740, missing_ratio=0.0000
+YFI_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=50530, missing_ratio=0.0000
+YGG_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=24879, missing_ratio=0.0000
+ZAMA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3561, missing_ratio=0.0000
+ZBT_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5575, missing_ratio=0.0000
+ZEC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52536, missing_ratio=0.0000
+ZEN_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=48490, missing_ratio=0.0000
+ZEREBRO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=12484, missing_ratio=0.0000
+ZETA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=20530, missing_ratio=0.0000
+ZIL_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52304, missing_ratio=0.0000
+ZKC_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=6340, missing_ratio=0.0000
+ZKP_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=4016, missing_ratio=0.0000
+ZK_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=17263, missing_ratio=0.0000
+ZORA_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=7591, missing_ratio=0.0000
+ZRO_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=17188, missing_ratio=0.0000
+ZRX_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=52160, missing_ratio=0.0000
+σ╕üσ«ëΣ║║τöƒ_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=5503, missing_ratio=0.0000
+µêæΦ╕ÅΘ⌐¼µ¥ÑΣ║å_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=3268, missing_ratio=0.0000
+Θ╛ÖΦÖ╛_USDT: has_taker_buy=True, has_quote_volume=True, has_trades=False, total_rows=2095, missing_ratio=0.0000
+
+======================================================================
+BVC Required: No (0.0% missing)
+% symbols with full taker_buy data: 100.0%
+Report saved to f:\kronos_v1_alt\logs\shard_inspection_report.txt

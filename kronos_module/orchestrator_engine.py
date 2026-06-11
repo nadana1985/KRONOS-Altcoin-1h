@@ -9,17 +9,17 @@ Ablation supported via global_prior_mode.
 import os
 import sys
 
-# Robust production bootstrap using KRONOS_PARAMS_PATH env + get_storage_path + cfg (zero literals)
-params_path = os.getenv("KRONOS_PARAMS_PATH")
-if params_path:
-    project_root = os.path.dirname(os.path.abspath(params_path))
-    kronos_module_dir = os.path.join(project_root, "kronos_module")
-    config_dir = os.path.join(project_root, "config")
-    sys.path.insert(0, config_dir)
-    sys.path.insert(0, kronos_module_dir)
+# Unconditional path bootstrap — derive project_root from __file__ location
+# This file is at kronos_module/orchestrator_engine.py, so project_root = parent of kronos_module/
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+_project_root = os.path.dirname(_this_dir)  # F:\kronos_v1_alt
+_config_dir = os.path.join(_project_root, "config")
+for _p in (_this_dir, _config_dir):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from structural_engine import get_dual_mode_context, apply_structural_veto
-from sovereign_entrypoint import get_sovereign_config
+from model.structural_engine import get_dual_mode_context, apply_structural_veto
+from utils.sovereign_entrypoint import get_sovereign_config
 # Lazy import to break circular with model.kronos (which imports back from orchestrator_engine)
 # from model.kronos import KronosPredictor  # moved inside extract_live_reversal_signals
 
@@ -43,7 +43,7 @@ def extract_live_reversal_signals(ablation_mode="individual"):
     # Use ctx for dual-mode and slots; cfg for other (no literals)
     print(f"Live extraction | Mode={ablation_mode} | Global ablatable={ctx['global_prior']['injection_ablatable']} | Target={cfg['symbols']['target_count']}")
     # Real trigger (no placeholders): miner via Option B + real predictor
-    from config.reversal_signature_miner_sovereign import mine_all_shards
+    from config.mining.reversal_signature_miner_sovereign import mine_all_shards
     mine_all_shards()  # real shards, real neural gate, real conv
     from model.kronos import KronosPredictor
     predictor = KronosPredictor(sovereign_ctx=ctx)

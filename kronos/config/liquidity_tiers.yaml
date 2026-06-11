@@ -103,3 +103,741 @@ overrides:
     ofi_base: 50
     amihud_base: 50
     slot15_history_base: 100
+
+  point_04:
+    # Manual Linear Multiplier Bias → Rolling Percentile Rank Transform
+    rank_window: 100
+    min_data_density: 100
+    fallback_rank: 0.5   # neutral rank when insufficient history
+    clip_min: 0.05
+    clip_max: 0.95
+
+  point_08:
+    # Hardcoded Lookback Scaling Ratios → (practical) Adaptive Cycle Scaling
+    # Proxy for EMD IMF wavelength using recent excursion / vol
+    cycle_window: 50
+    alpha: 1.0           # scaling coefficient for W_adaptive
+    min_lookback: 20
+    max_lookback: 400
+    min_data_density: 50
+    fallback_multiplier: 1.0
+
+  point_09:
+    # Static Percentage Threshold Bias → ATR-Weighted Volatility Bandwidths
+    atr_window: 20
+    kappa: 1.5           # ATR multiple
+    min_data_density: 50
+    fallback_bandwidth: 0.005   # 0.5% conservative
+    min_bandwidth: 0.001
+    max_bandwidth: 0.05
+
+  point_11:
+    # Arbitrary EWM Smoothing Span Bias → Volume-Synchronized Exponential Smoothing
+    base_alpha: 0.1
+    vol_window: 50
+    min_data_density: 50
+    fallback_alpha: 0.1
+    min_alpha: 0.01
+    max_alpha: 0.5
+
+  point_14:
+    # Hardcoded Denominator Epsilon Guards → Dynamic Sigma-Scaled Epsilon
+    eps_scale: 1e-7
+    sigma_window: 50
+    min_data_density: 30
+    fallback_eps: 1e-8
+    min_eps: 1e-12
+    max_eps: 1e-3
+
+  # ------------------------------------------------------------------
+  # Volatility Estimator Batch (Points 46-52, 57)
+  # All advanced range-based, robust, and clustering-aware estimators.
+  # Raw baseline is typically close-to-close log-return std.
+  # ------------------------------------------------------------------
+
+  point_46:
+    # Yang-Zhang: combines overnight + open-close + RS with weight k
+    vol_window: 20
+    yz_k: 0.34
+    min_data_density: 50
+    fallback_vol: 0.01   # conservative daily-ish vol for 1h bars
+
+  point_47:
+    # Rogers-Satchell (drift robust range vol)
+    vol_window: 20
+    min_data_density: 30
+    fallback_vol: 0.01
+
+  point_48:
+    # MAD robust vol
+    mad_window: 20
+    mad_scale: 1.4826
+    min_data_density: 30
+    fallback_vol: 0.01
+
+  point_49:
+    # Garman-Klass with overnight
+    vol_window: 20
+    gk_overnight_weight: 0.5
+    min_data_density: 50
+    fallback_vol: 0.01
+
+  point_50:
+    # Parkinson (high-low range)
+    vol_window: 20
+    min_data_density: 30
+    fallback_vol: 0.01
+
+  point_51:
+    # Simple GARCH(1,1) tracker (empirical params)
+    garch_omega: 1e-6
+    garch_alpha: 0.08
+    garch_beta: 0.85
+    garch_window: 50   # for initial var or burn-in
+    min_data_density: 60
+    fallback_vol: 0.01
+
+  point_52:
+    # Downside semi-vol (negative returns only)
+    vol_window: 20
+    min_data_density: 30
+    fallback_vol: 0.01
+
+  point_57:
+    # Bid-ask filtered RS (builds on 47)
+    vol_window: 20
+    spread_proxy: 0.0005   # or can be dynamic later from point 17
+    min_data_density: 30
+    fallback_vol: 0.01
+
+  point_53:
+    # Amihud-Adjusted Realized Volatility
+    vol_window: 20
+    amihud_lambda: 0.5
+    min_data_density: 50
+    fallback_vol: 0.01
+    amihud_window: 20
+
+  point_54:
+    # DCC-GARCH (simplified for practical use with market proxy)
+    garch_window: 50
+    dcc_alpha: 0.05
+    dcc_beta: 0.9
+    min_data_density: 100
+    fallback_vol: 0.01
+    shrinkage: 0.1
+
+  point_55:
+    # Integrated Variance via High-Frequency Counts (proxy using count)
+    vol_window: 20
+    intensity_window: 20
+    min_data_density: 50
+    fallback_vol: 0.01
+
+  point_56:
+    # Beta-Neutralized Residual Volatility
+    beta_window: 50
+    min_data_density: 60
+    fallback_vol: 0.01
+
+  point_58:
+    # DFA Volatility Scaling
+    dfa_window: 50
+    dfa_scale: 1.0
+    min_data_density: 100
+    fallback_vol: 0.01
+
+  point_59:
+    # Hurst-Adaptive Volatility Memory
+    hurst_window: 50
+    base_lambda: 0.1
+    min_data_density: 60
+    fallback_lambda: 0.1
+
+  point_60:
+    # Realized Kernel with Jump (proxy using range + bipower)
+    vol_window: 20
+    min_data_density: 50
+    fallback_vol: 0.01
+    jump_threshold: 2.0
+
+  # ------------------------------------------------------------------
+  # Tail Risk & Robust Statistics Batch (Points 61, 64, 66, 69, 70)
+  # Focus on tail modeling, robust estimation, and higher moments.
+  # ------------------------------------------------------------------
+
+  point_61:
+    # EVT GPD for tail modeling
+    threshold_quantile: 0.95
+    gpd_xi: 0.2
+    gpd_beta: 0.01
+    min_data_density: 100
+    fallback_tail_vol: 0.02
+
+  point_64:
+    # Causal VaR and ES
+    var_confidence: 0.95
+    es_confidence: 0.95
+    var_window: 50
+    min_data_density: 60
+    fallback_var: 0.02
+    fallback_es: 0.03
+
+  point_66:
+    # Huber robust mean
+    huber_c: 1.345
+    huber_window: 50
+    min_data_density: 40
+    fallback_return: 0.0
+
+  point_69:
+    # Rolling Fisher Skewness
+    skew_window: 50
+    min_data_density: 40
+    fallback_skew: 0.0
+
+  point_70:
+    # Rolling Fisher Kurtosis
+    kurt_window: 50
+    min_data_density: 40
+    fallback_kurt: 0.0
+
+  # ------------------------------------------------------------------
+  # Microstructure & Order Flow Batch (Points 17,19,21,22,25,26)
+  # Focus on spread, illiquidity, absorption, S/R proximity, and entropy.
+  # ------------------------------------------------------------------
+
+  point_17:
+    # Corwin-Schultz spread estimator
+    cs_window: 2
+    min_data_density: 50
+    fallback_spread: 0.001
+
+  point_19:
+    # Beta-CDF wick exhaustion
+    beta_alpha: 2.0
+    beta_beta: 5.0
+    wick_window: 20
+    min_data_density: 60
+    fallback_wick: 0.5
+
+  point_21:
+    # Amihud illiquidity proxy (already partially in prior, here dedicated)
+    amihud_window: 20
+    amihud_lambda: 0.5
+    min_data_density: 50
+    fallback_illiq: 0.0
+
+  point_22:
+    # Spread-weighted directional absorption
+    absorption_window: 20
+    min_data_density: 50
+    fallback_absorption: 0.0
+
+  point_25:
+    # Entropy-adaptive S/R memory
+    entropy_window: 24
+    base_lambda: 0.1
+    min_data_density: 50
+    fallback_lambda: 0.1
+
+  point_26:
+    # Cauchy proximity kernels
+    cauchy_gamma: 0.01
+    min_data_density: 40
+    fallback_proximity: 0.5
+
+  # ------------------------------------------------------------------
+  # Validation, Purging & Causality Batch (Points 35,79,80,82,90)
+  # Focus on leakage prevention, rigorous OOS testing, and causality.
+  # ------------------------------------------------------------------
+
+  point_35:
+    # Strict Combinatorial Purging & Embargoing
+    embargo_window: 5
+    purge_buffer: 1
+    min_data_density: 100
+    fallback_purge_ratio: 0.2
+    max_purge_ratio: 0.8
+
+  point_79:
+    # CPCV Path Calculations
+    n_blocks: 6
+    k_test: 2
+    embargo_window: 5
+    min_data_density: 200
+    n_paths_fallback: 10
+
+  point_80:
+    # Deflated Sharpe Ratio (DSR)
+    sharpe_confidence: 0.95
+    num_trials: 100
+    min_data_density: 100
+    fallback_sharpe: 0.5
+
+  point_82:
+    # Causally Lagged Cross-Sectional Information Flows
+    global_lag: 1
+    min_data_density: 50
+    fallback_local_only: true
+
+  point_90:
+    # Monte Carlo Path Deflated Sharpe Ratio Evaluations
+    n_mc_paths: 1000
+    sharpe_confidence: 0.95
+    num_trials: 100
+    min_data_density: 200
+    fallback_sharpe: 0.5
+
+  # ------------------------------------------------------------------
+  # Operational & Execution Batch (Points 91-95, 100)
+  # Focus on cross-platform deployment, adaptive resources, execution
+  # realism, and impact-aware position sizing.
+  # ------------------------------------------------------------------
+
+  point_91:
+    # OS-Agnostic Environment Path Resolution
+    env_var: "KRONOS_ROOT"
+    fallback_path: "."
+    subdirs:
+      - "data"
+      - "logs"
+      - "output"
+      - "shards"
+    min_data_density: 0
+
+  point_92:
+    # Dynamic Compute-Aware Adaptive Resource Allocation
+    base_shard_size: 8192
+    min_shard_size: 512
+    max_shard_size: 32768
+    safety_factor: 0.6
+    memory_per_shard_mb: 50.0
+    fallback_memory_gb: 4.0   # conservative default when psutil unavailable
+    min_data_density: 0
+
+  point_93:
+    # Estimated Execution Delay Latency Slippage Modifiers
+    latency_bars: 0.1          # expected latency in bar units (~6 min for 1h bars)
+    vol_window: 20             # window for volatility estimation
+    base_slippage_bps: 5.0     # minimum slippage in bps (exchange fee floor)
+    vol_scale_factor: 1.0      # multiplier for vol-driven slippage
+    max_slippage_bps: 50.0     # hard cap on total slippage
+    min_data_density: 20
+    fallback_slippage_bps: 10.0
+
+  point_94:
+    # Spread-Scaled Dynamic Execution Cost Models
+    base_fee_bps: 5.0          # base taker fee in bps
+    fee_scale_factor: 1.0      # multiplier for spread + impact costs
+    max_fee_bps: 50.0          # hard cap on total cost
+    order_size_usd: 10000.0    # default order size for cost estimation
+    min_volume_ratio: 0.001    # minimum order/volume ratio before floor
+    min_data_density: 20
+    fallback_cost_bps: 15.0
+
+  point_95:
+    # Time-Weighted Average Price (TWAP) Execution Models
+    n_slices: 4                # number of TWAP fill slices per bar
+    lookback_bars: 2           # bars used for TWAP simulation
+    min_slices: 1              # minimum slices allowed
+    min_data_density: 10
+    fallback_twap_adjustment_bps: 5.0
+
+  point_100:
+    # Impact-Aware Adaptive Position Sizing
+    target_risk_pct: 0.02      # target risk as % of portfolio per trade
+    vol_window: 20             # window for volatility estimation
+    lambda_impact: 1.0         # impact scaling coefficient
+    max_position_pct: 0.10     # max position as % of portfolio
+    min_position_usd: 100.0    # minimum position size in USD
+    portfolio_value_usd: 100000.0  # default portfolio value
+    cs_window: 2               # spread estimation window (Corwin-Schultz)
+    min_data_density: 20
+    fallback_position_pct: 0.02
+
+  # ------------------------------------------------------------------
+  # Remaining Batch A (Points 03, 05, 06, 07, 10, 12, 13, 15, 16, 18, 20, 23, 24)
+  # Spatial, sampling, microstructure, and statistical processing overrides.
+  # ------------------------------------------------------------------
+
+  point_03:
+    # SVD-Based Orthogonal Bottleneck Compression
+    n_components: 3            # target rank for compression
+    noise_std: 0.01            # small noise to break degeneracy in clustering
+    min_data_density: 300
+    fallback_components: 1
+
+  point_05:
+    # Synthetic Quote Volume-Imbalance Aggregation
+    target_multiplier: 1.0     # median volume accumulation target
+    min_window: 5              # minimum bars for volume accumulation
+    max_window: 100            # maximum bars allowed
+    min_data_density: 200
+    fallback_window: 24        # default 24h-like window
+
+  point_06:
+    # Continuous Amihud Decay Adjuster
+    amihud_window: 20
+    lambda_decay: 0.5          # decay rate for illiquidity penalty
+    min_data_density: 150
+    fallback_weight: 0.5       # neutral weight
+
+  point_07:
+    # GP-Evolved Parsimonious Polynomial Mapping (BIC-based approximation)
+    max_degree: 3              # maximum polynomial degree
+    alpha_parsimony: 1.0       # BIC penalty scaling (higher = simpler)
+    min_data_density: 500
+    fallback_degree: 1
+
+  point_10:
+    # Systemic Timestamp Latency Truncation
+    base_latency_ms: 100.0     # base expected latency in ms
+    latency_window: 50         # window for measuring actual latency
+    latency_tolerance: 0.15    # fraction above median gap to trigger truncation
+    min_data_density: 100
+    fallback_buffer_days: 1    # conservative fallback buffer
+
+  point_12:
+    # Continuous Variance Mixture Z-Scores
+    short_window: 10           # short-term variance window
+    long_window: 50            # long-term variance window
+    min_data_density: 200
+    fallback_zscore: 0.0       # neutral z-score
+
+  point_13:
+    # Trade-Intensity Weighted Imbalance
+    intensity_window: 20
+    min_data_density: 150
+    fallback_imbalance: 0.0    # neutral imbalance
+
+  point_15:
+    # Skewness-Weighted Asymmetric Barriers
+    phi_base: 2.0              # base barrier multiplier
+    skew_window: 50            # window for skewness estimation
+    min_data_density: 200
+    fallback_upper: 0.02       # 2% conservative upper barrier
+    fallback_lower: -0.02      # -2% conservative lower barrier
+
+  point_16:
+    # Gaussian KDE Volume Profiling
+    bandwidth_factor: 1.0      # Silverman bandwidth multiplier
+    n_price_levels: 50         # number of price levels for density
+    min_data_density: 200
+    fallback_poc: 0.0
+
+  point_18:
+    # Logarithmic Volume Z-Score Normalization
+    log_vol_window: 50
+    min_data_density: 150
+    fallback_zscore: 0.0
+
+  point_20:
+    # Normalized Shannon Count Entropy
+    entropy_window: 50
+    n_bins: 10                 # histogram bins for entropy estimation
+    min_data_density: 150
+    fallback_entropy: 0.5      # medium entropy
+
+  point_23:
+    # Eigenvalue-Driven Covariance Weighting
+    pca_window: 50
+    min_data_density: 200
+    fallback_weight: 0.5       # equal weight fallback
+
+  point_24:
+    # Fractionally Differenced OFI
+    fd_order: 0.4              # fractional differencing parameter d
+    max_lags: 20               # truncation lag for binomial weights
+    min_data_density: 300
+    fallback_fd_value: 0.0
+
+  # ------------------------------------------------------------------
+  # Remaining Batch B (Points 27-34, 36-45)
+  # Directional semivariance, Hurst-adaptive, Kendall tau, microstructure noise,
+  # entropy info bars, EOSR, genesis threshold, VPIN horizon, OU bridging,
+  # latency filter, HMA, DFT, intra-bar density, DTW, range norm, wavelet,
+  # info-weighted operators, copula transform.
+  # ------------------------------------------------------------------
+
+  point_27:
+    # Causal Semivariance Directional Scaling
+    downside_window: 20
+    asymmetry_scale: 0.5
+    min_data_density: 150
+    fallback_directional_weight: 0.5
+
+  point_28:
+    # Hurst-Adaptive Profile Lifespans
+    base_lookback: 288
+    hurst_window: 50
+    min_lookback: 20
+    max_lookback: 400
+    min_data_density: 200
+    fallback_lookback: 288
+
+  point_29:
+    # Kendall's Tau Trend-Strength Scaling
+    tau_window: 20
+    exhaustion_threshold: 0.3
+    min_data_density: 150
+    fallback_tau: 0.0
+
+  point_30:
+    # Bar-Level Realized Kernel Microstructure Estimator
+    noise_window: 20
+    noise_scale: 1.0
+    min_data_density: 150
+    fallback_noise: 0.001
+
+  point_31:
+    # Entropy-Weighted Information Bars
+    entropy_target: 2.0
+    min_window: 1
+    max_window: 12
+    min_data_density: 300
+    fallback_window: 1
+
+  point_32:
+    # Dynamic EOSR Annualization
+    sample_rate_ms: 3600000.0
+    min_data_density: 100
+    fallback_scale: 1.0
+
+  point_33:
+    # Cumulative Volume-Density Genesis Thresholding
+    baseline_density: 1000000.0
+    min_data_density: 100
+    fallback_genesis: 0
+
+  point_34:
+    # VPIN-Synchronized Dynamic Forecast Horizons
+    base_horizon: 4
+    phi_target: 1.5
+    min_window: 1
+    max_window: 12
+    min_data_density: 150
+
+  point_36:
+    # OU Volatility-Preserving Stochastic Bridging
+    theta: 0.1
+    sigma_scale: 1.0
+    n_paths: 50
+    min_data_density: 100
+    fallback_fill: 0.0
+
+  point_37:
+    # Causal Latency Outlier Filtering
+    window: 50
+    quantile_threshold: 0.99
+    min_data_density: 100
+    fallback_filtered_pct: 0.0
+
+  point_38:
+    # Zero-Lag Hull Moving Average
+    window: 20
+    min_data_density: 100
+    fallback_ma: 0.0
+
+  point_39:
+    # DFT Dominant Cycle Extraction
+    window: 288
+    min_freq: 3
+    min_data_density: 300
+    fallback_period: 24
+
+  point_40:
+    # Causal Intra-Bar Volume Density Weighting
+    window: 50
+    min_data_density: 150
+    fallback_weight: 1.0
+
+  point_41:
+    # DTW Metric Alignment
+    max_shift: 50
+    min_data_density: 300
+    fallback_shift: 0
+
+  point_42:
+    # Variance-Stabilized Normalized Range
+    window: 20
+    min_data_density: 100
+    fallback_norm_range: 1.0
+
+  point_43:
+    # Multiresolution Wavelet Decomposition
+    levels: 3
+    min_data_density: 300
+    fallback_orthogonality: 0.5
+
+  point_44:
+    # Information-Weighted Rolling Operators
+    window: 50
+    min_data_density: 150
+    fallback_weighted: 0.0
+
+  point_45:
+    # Asymmetric Copula-Based Dependent Transforms
+    window: 100
+    min_data_density: 300
+    fallback_copula: 0.5
+
+  point_63:
+    # Quantile Transformer Mapping
+    rank_window: 100
+    min_data_density: 100
+    fallback_rank: 0.5
+    clip_min: 0.05
+    clip_max: 0.95
+
+  point_65:
+    # Kalman Dynamic AR
+    ar_order: 2
+    process_noise: 0.01
+    measurement_noise: 0.05
+    min_data_density: 100
+    fallback_ar_coeff: 0.1
+
+  point_67:
+    # White's HC SE
+    regression_window: 50
+    min_data_density: 50
+    fallback_se_ratio: 1.0
+
+  point_68:
+    # Spearman's Rho
+    correlation_window: 50
+    min_data_density: 50
+    fallback_rho: 0.0
+
+  point_71:
+    # Kalman Dynamic Beta
+    beta_window: 100
+    process_noise: 0.01
+    measurement_noise: 0.05
+    min_data_density: 50
+    fallback_beta: 1.0
+
+  point_72:
+    # Hill's Tail Index
+    hill_k: 10
+    window: 100
+    min_data_density: 50
+    fallback_tail_index: 2.5
+
+  point_73:
+    # Rolling Johansen
+    window: 100
+    lag: 1
+    min_data_density: 50
+    fallback_cointegrated: false
+
+  point_74:
+    # CUSUM Break Detector
+    window: 100
+    critical_value: 1.0
+    min_data_density: 50
+    fallback_break: false
+
+  point_75:
+    # VIF Filtering
+    vif_threshold: 10.0
+    min_data_density: 50
+    fallback_drop_count: 0
+
+  point_76:
+    # MI Distance
+    n_bins: 10
+    min_data_density: 50
+    fallback_weight: 1.0
+
+  point_77:
+    # PCA Distance
+    n_components: 3
+    min_data_density: 50
+    fallback_variance: 0.5
+
+  point_78:
+    # Vol-Symmetric Barriers
+    barrier_phi: 2.0
+    window: 50
+    horizon: 10
+    min_data_density: 50
+    fallback_label: 0
+
+  point_81:
+    # MST Pruning
+    threshold: 0.3
+    min_data_density: 50
+    fallback_edges: 0
+
+  point_83:
+    # Info-Weighted Loss
+    min_data_density: 50
+    fallback_loss: 0.0
+
+  point_84:
+    # Mahalanobis Distance
+    window: 50
+    min_data_density: 30
+    fallback_distance: 0.0
+
+  point_85:
+    # BMA Ensemble
+    min_data_density: 50
+    fallback_weight: 1.0
+
+  point_86:
+    # mRMR Feature Selection
+    n_features: 5
+    n_bins: 10
+    min_data_density: 50
+    fallback_selected: 0
+
+  point_87:
+    # LOESS
+    span: 20
+    degree: 1
+    min_data_density: 30
+    fallback_prediction: 0.0
+
+  point_88:
+    # Linex Loss
+    asymmetry: 1.0
+    min_data_density: 50
+    fallback_loss: 0.0
+
+  point_89:
+    # GMM Soft Membership
+    n_components: 3
+    min_data_density: 50
+    fallback_membership: 0.33
+
+  point_96:
+    # Min Variance Portfolio
+    window: 100
+    min_weight: 0.0
+    max_weight: 0.3
+    min_data_density: 50
+    fallback_weight: 0.25
+
+  point_97:
+    # Jensen's Alpha
+    window: 50
+    risk_free_rate: 0.0
+    min_data_density: 30
+    fallback_alpha: 0.0
+
+  point_98:
+    # Rolling Engle-Granger
+    window: 100
+    min_data_density: 50
+    fallback_cointegrated: false
+
+  point_99:
+    # Dynamic Risk Parity
+    lambda_illiq: 0.5
+    min_weight: 0.0
+    max_weight: 0.3
+    min_data_density: 50
+    fallback_weight: 0.25

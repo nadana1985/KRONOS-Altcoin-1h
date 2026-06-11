@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kronos — Sovereign Reversal Intelligence</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+      colors: {
+        navy: { 900: '#0a0e1a', 800: '#0d1230', 700: '#111840', 600: '#162050' },
+        cyan: { 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2' },
+        emerald: { 400: '#34d399', 500: '#10b981' },
+        amber: { 400: '#fbbf24', 500: '#f59e0b' },
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
+        'slide-up': 'slideUp 0.5s ease-out',
+        'fade-in': 'fadeIn 0.6s ease-out',
+        'float': 'float 6s ease-in-out infinite',
+      },
+      keyframes: {
+        glow: {
+          '0%': { boxShadow: '0 0 5px rgba(6, 182, 212, 0.3), 0 0 10px rgba(6, 182, 212, 0.1)' },
+          '100%': { boxShadow: '0 0 15px rgba(6, 182, 212, 0.5), 0 0 30px rgba(6, 182, 212, 0.2)' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+      },
+    },
+  },
+}
+</script>
+<style>
+  body { background: #0a0e1a; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0e1a; }
+  ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2d5a8f; }
+  .glass { background: rgba(13, 18, 48, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(6, 182, 212, 0.08); }
+  .glass-card { background: linear-gradient(135deg, rgba(13,18,48,0.8), rgba(17,24,64,0.6)); border: 1px solid rgba(6,182,212,0.06); }
+  .glass-card:hover { border-color: rgba(6,182,212,0.2); }
+  .grid-bg { background-image: radial-gradient(rgba(6,182,212,0.03) 1px, transparent 1px); background-size: 30px 30px; }
+  .text-gradient { background: linear-gradient(135deg, #22d3ee, #06b6d4, #0891b2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .text-gradient-amber { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .text-gradient-emerald { background: linear-gradient(135deg, #34d399, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .neu-border { border: 1px solid rgba(6,182,212,0.1); }
+  .neu-border:hover { border-color: rgba(6,182,212,0.3); }
+  .tab-active { color: #22d3ee; border-bottom: 2px solid #22d3ee; }
+  
+  /* Pulse dot */
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; position: relative; }
+  .pulse-dot::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid #10b981; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+  @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+
+  /* Flow arrows animated */
+  .flow-arrow { animation: flowPulse 2s ease-in-out infinite; }
+  @keyframes flowPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+  /* Tab content transitions */
+  .tab-panel { display: none; animation: fadeIn 0.4s ease-out; }
+  .tab-panel.active { display: block; }
+
+  /* Signal strength bar */
+  .signal-bar { height: 6px; border-radius: 3px; transition: width 0.5s ease; }
+
+  /* Copy feedback */
+  .copy-feedback { opacity: 0; transition: opacity 0.3s; }
+  .copy-feedback.show { opacity: 1; }
+
+  /* Architecture diagram node */
+  .arch-node { cursor: pointer; transition: all 0.3s ease; }
+  .arch-clickable { cursor: pointer; }
+  .arch-node:hover { transform: translateY(-2px); border-color: rgba(6,182,212,0.4); }
+  .arch-node.selected { border-color: #22d3ee; box-shadow: 0 0 20px rgba(6,182,212,0.2); }
+  .arch-connector { stroke: rgba(6,182,212,0.2); stroke-width: 2; fill: none; }
+  .arch-connector.active { stroke: #22d3ee; stroke-dasharray: 8,4; animation: dashMove 1s linear infinite; }
+  @keyframes dashMove { to { stroke-dashoffset: -24; } }
+
+  /* Signal visualizer rings */
+  .ring { transition: all 0.6s ease; }
+
+  /* Timeline line */
+  .timeline-line { background: linear-gradient(to bottom, rgba(6,182,212,0.3), rgba(6,182,212,0.05)); }
+
+  @media (max-width: 768px) {
+    .arch-desktop { display: none; }
+  }
+  section[id] { scroll-margin-top: 80px; }
+</style>
+</head>
+<body class="font-sans text-slate-200 antialiased grid-bg min-h-screen">
+
+<!-- ===== SITE HEADER ===== -->
+<header class="fixed top-0 left-0 right-0 z-50 glass border-b border-cyan-500/10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-bold tracking-tight text-white">⚡ Kronos</span>
+      <span class="hidden sm:inline text-xs text-slate-500 font-mono">v5</span>
+      <div class="hidden sm:flex items-center gap-1.5 ml-2">
+        <span class="pulse-dot"></span>
+        <span class="text-xs text-emerald-400 font-medium">Sovereign Engine</span>
+      </div>
+    </div>
+    <nav class="hidden md:flex items-center gap-8 text-sm text-slate-400">
+      <a href="#philosophy" class="hover:text-cyan-400 transition-colors">Philosophy</a>
+      <a href="#architecture" class="hover:text-cyan-400 transition-colors">Architecture</a>
+      <a href="#components" class="hover:text-cyan-400 transition-colors">Components</a>
+      <a href="#tech" class="hover:text-cyan-400 transition-colors">Tech Stack</a>
+      <a href="#visualize" class="hover:text-cyan-400 transition-colors">Visualize</a>
+    </nav>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-slate-600 font-mono">v5.0.0</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== HERO SECTION ===== -->
+<section class="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/[0.03] via-transparent to-transparent pointer-events-none"></div>
+  <div class="absolute top-40 -left-40 w-80 h-80 bg-cyan-500/5 rounded-full blur-[120px]"></div>
+  <div class="absolute top-20 right-20 w-60 h-60 bg-emerald-500/5 rounded-full blur-[100px]"></div>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <div class="text-center max-w-4xl mx-auto">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-medium text-cyan-400 mb-8 border border-cyan-500/15 animate-fade-in">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse-slow"></span>
+        V5 Sovereign Engine — Production Ready
+      </div>
+      <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white mb-3 leading-[1.1]">
+        <span class="text-gradient">Sovereign</span> Reversal<br>
+        <span class="text-gradient-emerald">Intelligence</span> for Crypto
+      </h1>
+      <p class="text-sm text-slate-600 font-mono mb-6">aka AltcoinKronos / Krinos</p>
+      <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10">
+        A production-grade, mathematically sovereign quantitative trading system for high-precision reversal pattern mining — 
+        engineered for ETH and altcoin perpetuals with uncompromising auditability.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <div class="glass-card rounded-xl px-5 py-3 text-sm neu-border">
+          <span class="text-slate-500">Engine</span>
+          <span class="ml-2 text-cyan-400 font-semibold">V5 Sovereign</span>
+        </div>
+        <div class="glass-card rounded-xl px-5 py-3 text-sm neu-border">
+          <span class="text-slate-500">Universe</span>
+          <span class="ml-2 text-emerald-400 font-semibold">530+ Altcoins</span>
+        </div>
+        <div class="glass-card rounded-xl px-5 py-3 text-sm neu-border">
+          <span class="text-slate-500">Resolution</span>
+          <span class="ml-2 text-amber-400 font-semibold">1h USDT Perps</span>
+        </div>
+        <div class="glass-card rounded-xl px-5 py-3 text-sm neu-border">
+          <span class="text-slate-500">DNA Slots</span>
+          <span class="ml-2 text-cyan-400 font-semibold">32 Causal</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PHILOSOPHY ===== -->
+<section id="philosophy" class="py-20 sm:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Core Philosophy</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">Built on Principle</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
+      <!-- Zero-Hardcode Doctrine -->
+      <div class="glass-card rounded-2xl p-8 neu-border group hover:border-cyan-500/30 transition-all duration-300">
+        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-6 text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold text-white mb-3">Zero-Hardcode Doctrine</h3>
+        <p class="text-sm text-slate-400 leading-relaxed">
+          Every numerical value — every window, threshold, weight, epsilon, and clamp — resolves exclusively from 
+          <code class="text-cyan-400 font-mono text-xs">params_yaml.txt</code>. Zero inline literals. Full auditability by construction.
+        </p>
+        <div class="mt-4 pt-4 border-t border-cyan-500/10">
+          <code class="text-xs font-mono text-slate-500">cfg["thresholds"][key] → all values</code>
+        </div>
+      </div>
+
+      <!-- Mathematical Sovereignty -->
+      <div class="glass-card rounded-2xl p-8 neu-border group hover:border-cyan-500/30 transition-all duration-300">
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold text-white mb-3">Mathematical Sovereignty</h3>
+        <p class="text-sm text-slate-400 leading-relaxed">
+          Every slot, gate, and transformation has a published mathematical definition with precise formulas, 
+          range bounds, and interpretation. No black boxes. Every output is reproducible and causally pure.
+        </p>
+        <div class="mt-4 pt-4 border-t border-cyan-500/10">
+          <code class="text-xs font-mono text-slate-500">slot_k = f(cfg, X_t, X_{t-1}, ...)</code>
+        </div>
+      </div>
+
+      <!-- Production Rigor -->
+      <div class="glass-card rounded-2xl p-8 neu-border group hover:border-cyan-500/30 transition-all duration-300">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-6 text-amber-400 group-hover:bg-amber-500/20 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold text-white mb-3">Production Rigor</h3>
+        <p class="text-sm text-slate-400 leading-relaxed">
+          Vectorized causal rolling on real shards (<em>Option B</em> — no placeholders). PyTorch compile + mixed precision + GPU acceleration. 
+          E2E ablation tests, structural veto gates, and edge-capable inference.
+        </p>
+        <div class="mt-4 pt-4 border-t border-cyan-500/10">
+          <code class="text-xs font-mono text-slate-500">530 symbols · 10M+ bars · vectorized</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SYSTEM OVERVIEW / ARCHITECTURE ===== -->
+<section id="architecture" class="py-20 sm:py-28 bg-navy-800/30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">System Architecture</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">The Data Pipeline</h2>
+      <p class="text-slate-400 mt-3 max-w-lg mx-auto">Click any layer to learn more about how it works.</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex justify-center mb-10">
+      <div class="inline-flex glass rounded-xl p-1 neu-border">
+        <button onclick="switchTab('arch', 'pipeline')" class="tab-arch tab-pipeline px-5 py-2 text-sm rounded-lg font-medium text-cyan-400 bg-cyan-500/10 transition-all">Pipeline</button>
+        <button onclick="switchTab('arch', 'slots')" class="tab-arch tab-slots px-5 py-2 text-sm rounded-lg font-medium text-slate-500 hover:text-slate-300 transition-all">32-Slot DNA</button>
+      </div>
+    </div>
+
+    <!-- Pipeline Tab -->
+    <div id="tab-arch-pipeline" class="tab-panel active">
+      <div class="relative max-w-6xl mx-auto">
+
+        <!-- SVG Architecture Diagram -->
+        <div class="hidden lg:block">
+          <svg viewBox="0 0 1200 280" class="w-full mb-8">
+            <defs>
+              <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.1"/>
+                <stop offset="50%" stop-color="#22d3ee" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.1"/>
+              </linearGradient>
+              <filter id="glowLight">
+                <feGaussianBlur stdDeviation="2" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- Connectors -->
+            <line x1="145" y1="120" x2="255" y2="120" class="arch-connector flow-arrow" style="animation-delay: 0s"/>
+            <polygon points="250,115 260,120 250,125" fill="#22d3ee" opacity="0.4"/>
+            <line x1="410" y1="120" x2="520" y2="120" class="arch-connector flow-arrow" style="animation-delay: 0.3s"/>
+            <polygon points="515,115 525,120 515,125" fill="#22d3ee" opacity="0.4"/>
+            <line x1="675" y1="120" x2="785" y2="120" class="arch-connector flow-arrow" style="animation-delay: 0.6s"/>
+            <polygon points="780,115 790,120 780,125" fill="#22d3ee" opacity="0.4"/>
+            <line x1="950" y1="120" x2="1060" y2="120" class="arch-connector flow-arrow" style="animation-delay: 0.9s"/>
+            <polygon points="1055,115 1065,120 1055,125" fill="#22d3ee" opacity="0.4"/>
+
+            <!-- Data Ingestion -->
+            <rect x="10" y="70" width="140" height="100" rx="16" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.2)" stroke-width="1.5" onclick="showArchDetail('ingestion')"/>
+            <text x="80" y="100" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="600" font-family="Inter, sans-serif" filter="url(#glowLight)">Data</text>
+            <text x="80" y="118" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="600" font-family="Inter, sans-serif" filter="url(#glowLight)">Ingestion</text>
+            <text x="80" y="142" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">CCXT · Real API</text>
+            <text x="80" y="155" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">12-field klines</text>
+
+            <!-- Feature Engineering -->
+            <rect x="265" y="70" width="150" height="100" rx="16" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.2)" stroke-width="1.5" onclick="showArchDetail('features')"/>
+            <text x="340" y="100" text-anchor="middle" fill="#34d399" font-size="14" font-weight="600" font-family="Inter, sans-serif">Feature</text>
+            <text x="340" y="118" text-anchor="middle" fill="#34d399" font-size="14" font-weight="600" font-family="Inter, sans-serif">Engineering</text>
+            <text x="340" y="142" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">8 structural slots</text>
+            <text x="340" y="155" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">Multi-window rolling</text>
+
+            <!-- Regime Detection -->
+            <rect x="530" y="70" width="150" height="100" rx="16" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.2)" stroke-width="1.5" onclick="showArchDetail('regime')"/>
+            <text x="605" y="98" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="600" font-family="Inter, sans-serif">Regime</text>
+            <text x="605" y="116" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="600" font-family="Inter, sans-serif">Detection</text>
+            <text x="605" y="142" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">ADX · VPIN · Hurst</text>
+            <text x="605" y="155" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">S/R Proximity</text>
+
+            <!-- Signal Generation -->
+            <rect x="795" y="70" width="160" height="100" rx="16" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.2)" stroke-width="1.5" onclick="showArchDetail('signal')"/>
+            <text x="875" y="98" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="600" font-family="Inter, sans-serif">Signal</text>
+            <text x="875" y="116" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="600" font-family="Inter, sans-serif">Generation</text>
+            <text x="875" y="142" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">Slot_15 veto gate</text>
+            <text x="875" y="155" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">Neural conviction</text>
+
+            <!-- Risk & Execution -->
+            <rect x="1070" y="70" width="130" height="100" rx="16" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.2)" stroke-width="1.5" onclick="showArchDetail('risk')"/>
+            <text x="1135" y="98" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="600" font-family="Inter, sans-serif">Risk &amp;</text>
+            <text x="1135" y="116" text-anchor="middle" fill="#f59e0b" font-size="13" font-weight="600" font-family="Inter, sans-serif">Execution</text>
+            <text x="1135" y="142" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">Vectorized BT</text>
+            <text x="1135" y="155" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter, sans-serif">Live engine</text>
+
+            <!-- Bottom row: Memory + Dashboards -->
+            <line x1="605" y1="215" x2="605" y2="190" class="arch-connector flow-arrow" style="animation-delay: 1.2s"/>
+            <polygon points="600,193 605,183 610,193" fill="#22d3ee" opacity="0.4"/>
+
+            <rect x="410" y="215" width="150" height="50" rx="12" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.15)" stroke-width="1" onclick="showArchDetail('memory')"/>
+            <text x="485" y="238" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="500" font-family="Inter, sans-serif">🧠 Agents &amp; Memory</text>
+            <text x="485" y="252" text-anchor="middle" fill="#64748b" font-size="9" font-family="Inter, sans-serif">GBrain · DeRonin · AiXBT</text>
+
+            <rect x="650" y="215" width="150" height="50" rx="12" class="arch-node" fill="rgba(13,18,48,0.9)" stroke="rgba(6,182,212,0.15)" stroke-width="1" onclick="showArchDetail('viz')"/>
+            <text x="725" y="238" text-anchor="middle" fill="#34d399" font-size="12" font-weight="500" font-family="Inter, sans-serif">📊 Dashboards</text>
+            <text x="725" y="252" text-anchor="middle" fill="#64748b" font-size="9" font-family="Inter, sans-serif">Signal · Regime · DNA</text>
+          </svg>
+        </div>
+
+        <!-- Mobile-friendly description -->
+        <p class="text-xs text-slate-500 mb-3 lg:hidden text-center">Tap any layer to learn more</p>
+        <div class="lg:hidden grid grid-cols-2 gap-3 mb-6">
+          <div class="glass-card rounded-xl p-4 neu-border arch-clickable hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all" onclick="showArchDetail('ingestion')">
+            <span class="text-cyan-400 text-sm font-semibold">📥 Data Ingestion</span>
+            <p class="text-xs text-slate-500 mt-1">CCXT · 12-field klines</p>
+          </div>
+          <div class="glass-card rounded-xl p-4 neu-border arch-clickable hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all" onclick="showArchDetail('features')">
+            <span class="text-emerald-400 text-sm font-semibold">⚙️ Feature Engineering</span>
+            <p class="text-xs text-slate-500 mt-1">8 structural slots</p>
+          </div>
+          <div class="glass-card rounded-xl p-4 neu-border arch-clickable hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all" onclick="showArchDetail('regime')">
+            <span class="text-amber-400 text-sm font-semibold">🔬 Regime Detection</span>
+            <p class="text-xs text-slate-500 mt-1">ADX · VPIN · Hurst</p>
+          </div>
+          <div class="glass-card rounded-xl p-4 neu-border arch-clickable hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all" onclick="showArchDetail('signal')">
+            <span class="text-cyan-400 text-sm font-semibold">📈 Signal Generation</span>
+            <p class="text-xs text-slate-500 mt-1">Slot_15 veto · Neural</p>
+          </div>
+          <div class="glass-card rounded-xl p-4 neu-border arch-clickable hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all" onclick="showArchDetail('risk')">
+            <span class="text-amber-400 text-sm font-semibold">🛡️ Risk & Execution</span>
+            <p class="text-xs text-slate-500 mt-1">BT · Live engine</p>
+          </div>
+          <div class="glass-card rounded-xl p-4 neu-border arch-clickable hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all" onclick="showArchDetail('memory')">
+            <span class="text-cyan-400 text-sm font-semibold">🧠 Agents</span>
+            <p class="text-xs text-slate-500 mt-1">GBrain · DeRonin</p>
+          </div>
+        </div>
+
+        <!-- Architecture Detail Panel -->
+        <div id="arch-detail" class="glass-card rounded-2xl p-6 sm:p-8 neu-border hidden">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <span id="arch-detail-badge" class="text-xs font-mono text-cyan-500 uppercase tracking-wider">Layer</span>
+              <h3 id="arch-detail-title" class="text-xl font-bold text-white mt-1"></h3>
+            </div>
+            <button onclick="document.getElementById('arch-detail').classList.add('hidden')" class="text-slate-600 hover:text-slate-400 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <p id="arch-detail-desc" class="text-slate-400 text-sm leading-relaxed"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 32-Slot DNA Tab -->
+    <div id="tab-arch-slots" class="tab-panel">
+      <div class="max-w-6xl mx-auto">
+        <p class="text-slate-400 text-sm mb-6 text-center">The 32-dimensional causal DNA vector — structural proxies, neural embeddings, auxiliary metrics, and metadata — computed bar-by-bar with strict causality.</p>
+        
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Structural Slots -->
+          <div class="glass-card rounded-xl p-5 neu-border col-span-2 lg:col-span-1">
+            <h4 class="text-xs uppercase tracking-wider text-cyan-400 font-semibold mb-3">Structural (8)</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_00</span><span class="text-white">Bid-Ask Absorption</span><span class="text-slate-600 font-mono">[-1,+1]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_04</span><span class="text-white">Fractal Exhaustion</span><span class="text-slate-600 font-mono">[-0.5,+0.5]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_07</span><span class="text-white">Volume-Price Divergence</span><span class="text-slate-600 font-mono">z-score</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_08</span><span class="text-white">Regime Classifier</span><span class="text-slate-600 font-mono">[0,1]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_09</span><span class="text-white">Volume Delta Pressure</span><span class="text-slate-600 font-mono">[-1,+1]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_10</span><span class="text-white">Wick Exhaustion</span><span class="text-slate-600 font-mono">[0,1]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_11</span><span class="text-white">S/R Proximity</span><span class="text-slate-600 font-mono">[0,1]</span></div>
+              <div class="flex justify-between items-center text-xs pt-2 border-t border-cyan-500/10"><span class="text-cyan-400 font-semibold">slot_15</span><span class="text-cyan-300">🔒 Veto Composite</span><span class="text-cyan-600 font-mono">[0,1]</span></div>
+            </div>
+          </div>
+
+          <!-- Neural Embeddings -->
+          <div class="glass-card rounded-xl p-5 neu-border">
+            <h4 class="text-xs uppercase tracking-wider text-emerald-400 font-semibold mb-3">Neural (8)</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_16</span><span class="text-white">Embedding 1</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_17</span><span class="text-white">Embedding 2</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_18</span><span class="text-white">Embedding 3</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_19</span><span class="text-white">Embedding 4</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_20</span><span class="text-white">Embedding 5</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_21</span><span class="text-white">Embedding 6</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_22</span><span class="text-white">Embedding 7</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs pt-2 border-t border-cyan-500/10"><span class="text-slate-400">slot_23</span><span class="text-white">Embedding 8 (MAE)</span><span class="text-slate-600 font-mono">ℝ</span></div>
+            </div>
+          </div>
+
+          <!-- Auxiliary -->
+          <div class="glass-card rounded-xl p-5 neu-border">
+            <h4 class="text-xs uppercase tracking-wider text-amber-400 font-semibold mb-3">Auxiliary (4)</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_24</span><span class="text-white">Vol Forecast Delta</span><span class="text-slate-600 font-mono">ℝ</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_25</span><span class="text-white">MFE Projection</span><span class="text-slate-600 font-mono">[0,~2]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_26</span><span class="text-white">Neural Regime Intensity</span><span class="text-slate-600 font-mono">[0,1]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_27</span><span class="text-white">Structural-Neural Residual</span><span class="text-slate-600 font-mono">[0,∞)</span></div>
+            </div>
+          </div>
+
+          <!-- Metadata -->
+          <div class="glass-card rounded-xl p-5 neu-border">
+            <h4 class="text-xs uppercase tracking-wider text-purple-400 font-semibold mb-3">Metadata (4)</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_28</span><span class="text-white">Phylum Cluster</span><span class="text-slate-600 font-mono">{-1,0,1,2}</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_29</span><span class="text-white">Recovery Proxy</span><span class="text-slate-600 font-mono">[0,1]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_30</span><span class="text-white">Post-Hoc MFE</span><span class="text-slate-600 font-mono">[0,50]</span></div>
+              <div class="flex justify-between items-center text-xs"><span class="text-slate-400">slot_31</span><span class="text-white">Post-Hoc MAE</span><span class="text-slate-600 font-mono">[0,1]</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== KEY COMPONENTS ===== -->
+<section id="components" class="py-20 sm:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Key Components</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">The Engine Room</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 lg:gap-8">
+      <!-- DNA Archetypes & Phyla -->
+      <div class="glass-card rounded-2xl overflow-hidden neu-border group hover:border-cyan-500/25 transition-all">
+        <div class="p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white">DNA Archetypes &amp; Phyla</h3>
+          </div>
+          <p class="text-sm text-slate-400 leading-relaxed mb-4">
+            Each mined signature is a 32-dimensional <strong class="text-cyan-300">DNA vector</strong>. Post-hoc, HDBSCAN clusters the structural subspace into 
+            <strong class="text-emerald-400">8 archetype families</strong> and <strong class="text-amber-400">20 phyla</strong> — a structured taxonomy of reversal patterns.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300">Noise → -1</span>
+            <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300">Phylum 0 · 1,773 sigs</span>
+            <span class="text-xs px-3 py-1 rounded-full bg-amber-500/10 text-amber-300">Phylum 1 · 20 sigs (elite)</span>
+            <span class="text-xs px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300">Phylum 2 · 1,628 sigs</span>
+          </div>
+        </div>
+        <div class="px-6 sm:px-8 pb-6">
+          <details class="text-sm">
+            <summary class="text-cyan-400 cursor-pointer hover:text-cyan-300 transition-colors">View slot structure →</summary>
+            <div class="mt-3 space-y-1 text-xs text-slate-500 font-mono bg-navy-900/50 rounded-lg p-3">
+              <div>Structural: slot_00, 04, 07–11, 15</div>
+              <div>Neural: slot_16–23 (bottleneck)</div>
+              <div>Auxiliary: slot_24–27</div>
+              <div>Metadata: slot_28–31</div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Regime Detection -->
+      <div class="glass-card rounded-2xl overflow-hidden neu-border group hover:border-cyan-500/25 transition-all">
+        <div class="p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white">Regime Detection &amp; Mining</h3>
+          </div>
+          <p class="text-sm text-slate-400 leading-relaxed mb-4">
+            Multi-proxy regime detection across <strong class="text-amber-300">530+ altcoins</strong> at 1h resolution. Combines ADX-inspired trending, 
+            VPIN order flow imbalance, Hurst fractal exhaustion, multi-scale wick analysis, and dynamic S/R proximity.
+          </p>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-navy-900/50 rounded-lg p-2.5">
+              <span class="text-slate-500">Veto Threshold</span>
+              <div class="text-white font-mono mt-0.5">slot_15 ≥ 0.38</div>
+            </div>
+            <div class="bg-navy-900/50 rounded-lg p-2.5">
+              <span class="text-slate-500">Confidence Min</span>
+              <div class="text-white font-mono mt-0.5">conf ≥ 0.38</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backtesting & Live Engine -->
+      <div class="glass-card rounded-2xl overflow-hidden neu-border group hover:border-cyan-500/25 transition-all">
+        <div class="p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white">Backtesting &amp; Live Engine</h3>
+          </div>
+          <p class="text-sm text-slate-400 leading-relaxed mb-4">
+            Fully vectorized backtesting engine with causal purity guarantees. Live trading via CCXT bridge. 
+            Dual-mode architecture: <strong class="text-emerald-400">Individual Mode</strong> (primary) + 
+            <strong class="text-cyan-400">Global Prior Mode</strong> (ablatable cross-symbol injection).
+          </p>
+          <div class="flex items-center gap-2 text-xs text-slate-500">
+            <code class="bg-navy-900/50 px-2 py-1 rounded">test_end_to_end.py</code>
+            <span>→</span>
+            <span>Full pipeline validation</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Agent Layer -->
+      <div class="glass-card rounded-2xl overflow-hidden neu-border group hover:border-cyan-500/25 transition-all">
+        <div class="p-6 sm:p-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white">AI Agent Integrations</h3>
+          </div>
+          <p class="text-sm text-slate-400 leading-relaxed mb-4">
+            Three integrated agent systems extend the engine's intelligence: 
+            <strong class="text-cyan-300">GBrain</strong> (long-term episodic memory), 
+            <strong class="text-emerald-300">DeRonin</strong> (agentic orchestration stack), and 
+            <strong class="text-amber-300">AiXBT</strong> (market intelligence terminal).
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs px-2 py-1 rounded bg-cyan-500/10 text-cyan-300">GBrain → Memory</span>
+            <span class="text-xs px-2 py-1 rounded bg-emerald-500/10 text-emerald-300">DeRonin → Agents</span>
+            <span class="text-xs px-2 py-1 rounded bg-amber-500/10 text-amber-300">AiXBT → Intelligence</span>
+            <span class="text-xs px-2 py-1 rounded bg-purple-500/10 text-purple-300">Cognee → Knowledge Graph</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TECHNICAL FOUNDATIONS ===== -->
+<section class="py-20 sm:py-28 bg-navy-800/30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Technical Foundations</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">Under the Hood</h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 lg:gap-8">
+      <!-- Krinos Math -->
+      <div class="glass-card rounded-2xl p-6 sm:p-8 neu-border">
+        <div class="text-cyan-400 text-2xl font-mono font-bold mb-3">∫</div>
+        <h3 class="text-lg font-semibold text-white mb-3">Krinos Math</h3>
+        <p class="text-sm text-slate-400 leading-relaxed mb-4">
+          Custom mathematical foundation governing all transformations — from rolling percentile ranks and 
+          ATR-weighted bandwidths to sigma-scaled epsilons and volume-synchronized exponential smoothing.
+        </p>
+        <div class="bg-navy-900/50 rounded-lg p-3 font-mono text-xs text-slate-500">
+          <div class="text-cyan-400">Rolling Percentile Rank:</div>
+          <div>rank(X_t) = Σ I[X_τ ≤ X_t] / W</div>
+          <div class="text-emerald-400 mt-1.5">ATR Bandwidth:</div>
+          <div>B_t = (Σ |H-L|) × κ / W</div>
+          <div class="text-amber-400 mt-1.5">Sigma-Scaled Epsilon:</div>
+          <div>ε_t = σ(X[t-W:t]) × 1e⁻⁷</div>
+        </div>
+      </div>
+
+      <!-- Inference Performance -->
+      <div class="glass-card rounded-2xl p-6 sm:p-8 neu-border">
+        <div class="text-emerald-400 text-2xl font-mono font-bold mb-3">⚡</div>
+        <h3 class="text-lg font-semibold text-white mb-3">Inference Hardening</h3>
+        <p class="text-sm text-slate-400 leading-relaxed mb-4">
+          Performance-optimized V5 Sovereign Engine with heavy inference acceleration. Runs on modest 
+          hardware (AMD RX 560) and scales to cloud GPUs (L4, L40S).
+        </p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span class="text-slate-400">PyTorch <code class="text-cyan-400 font-mono">compile</code></span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-slate-400">Mixed precision (amp)</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span class="text-slate-400">INT8 / FP8 quantization</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+            <span class="text-slate-400">CUDA graphs + kernel fusion</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sovereignty & Auditability -->
+      <div class="glass-card rounded-2xl p-6 sm:p-8 neu-border">
+        <div class="text-amber-400 text-2xl font-mono font-bold mb-3">🔍</div>
+        <h3 class="text-lg font-semibold text-white mb-3">Sovereignty &amp; Audit</h3>
+        <p class="text-sm text-slate-400 leading-relaxed mb-4">
+          Every change is ablation-testable, every value traceable to config, every output reproducible. 
+          The system is designed for zero-trust deployment.
+        </p>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center justify-between bg-navy-900/50 rounded-lg px-3 py-2">
+            <span class="text-slate-400">Bias Override Registry</span>
+            <span class="text-cyan-400 font-mono">450+ entries</span>
+          </div>
+          <div class="flex items-center justify-between bg-navy-900/50 rounded-lg px-3 py-2">
+            <span class="text-slate-400">Ablation Tests</span>
+            <span class="text-emerald-400 font-mono">Dual-mode gated</span>
+          </div>
+          <div class="flex items-center justify-between bg-navy-900/50 rounded-lg px-3 py-2">
+            <span class="text-slate-400">32-Slot Reality Audit</span>
+            <span class="text-amber-400 font-mono">Full transparency</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INTERACTIVE SIGNAL VISUALIZER ===== -->
+<section id="visualize" class="py-20 sm:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Interactive Demo</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">Signal Strength Visualizer</h2>
+      <p class="text-slate-400 mt-3 max-w-lg mx-auto">Adjust parameters to see how structural slots respond in real time.</p>
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+      <div class="glass-card rounded-2xl p-6 sm:p-8 neu-border">
+        <!-- Signal Strength Meter -->
+        <div class="mb-8">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-white">Composite Signal Strength</span>
+            <span id="composite-value" class="text-2xl font-bold text-cyan-400 font-mono">0.42</span>
+          </div>
+          <div class="relative h-4 bg-navy-900/70 rounded-full overflow-hidden">
+            <div id="composite-bar" class="signal-bar h-full rounded-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-amber-400" style="width: 42%"></div>
+          </div>
+          <div class="flex justify-between text-xs text-slate-600 mt-1">
+            <span>Weak</span>
+            <span>Threshold</span>
+            <span>Strong</span>
+          </div>
+        </div>
+
+        <!-- Slot Controls -->
+        <div class="space-y-5">
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_00 · Bid-Ask Absorption</label>
+              <span id="val-00" class="text-sm font-mono text-cyan-400">0.35</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.35" class="w-full accent-cyan-400" oninput="updateSignal(0, this.value)">
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_04 · Fractal Hurst Exhaustion</label>
+              <span id="val-04" class="text-sm font-mono text-cyan-400">0.28</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.28" class="w-full accent-cyan-400" oninput="updateSignal(4, this.value)">
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_07 · Volume-Price Divergence</label>
+              <span id="val-07" class="text-sm font-mono text-cyan-400">0.52</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.52" class="w-full accent-cyan-400" oninput="updateSignal(7, this.value)">
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_08 · Regime Classifier</label>
+              <span id="val-08" class="text-sm font-mono text-cyan-400">0.18</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.18" class="w-full accent-cyan-400" oninput="updateSignal(8, this.value)">
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_09 · Volume Delta Pressure</label>
+              <span id="val-09" class="text-sm font-mono text-cyan-400">0.61</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.61" class="w-full accent-cyan-400" oninput="updateSignal(9, this.value)">
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_10 · Wick Exhaustion</label>
+              <span id="val-10" class="text-sm font-mono text-cyan-400">0.08</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.08" class="w-full accent-cyan-400" oninput="updateSignal(10, this.value)">
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <label class="text-sm text-slate-300">slot_11 · S/R KDE Proximity</label>
+              <span id="val-11" class="text-sm font-mono text-cyan-400">0.45</span>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" value="0.45" class="w-full accent-cyan-400" oninput="updateSignal(11, this.value)">
+          </div>
+        </div>
+
+        <!-- Veto Gate Indicator -->
+        <div id="veto-indicator" class="mt-6 flex items-center gap-3 bg-rose-500/10 rounded-xl px-4 py-3 border border-rose-500/20">
+          <div class="w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse-slow"></div>
+          <span class="text-sm text-rose-300 font-medium">Veto Gate: slot_15 = <span id="slot15-value">0.36</span> (below threshold 0.38) — signal blocked</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-2 text-xs text-slate-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Drag sliders to see the composite score and veto gate react in real time. Each slot is a normalized [0,1] value.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TIMELINE ===== -->
+<section class="py-20 sm:py-28 bg-navy-800/30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Development</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">Evolution Path</h2>
+    </div>
+
+    <div class="max-w-3xl mx-auto relative">
+      <div class="timeline-line absolute left-8 top-0 bottom-0 w-px"></div>
+      
+      <div class="space-y-12">
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 0 — Bootstrap</h3>
+          <p class="text-sm text-slate-400 mt-1">Universe configuration, liquidity tiering, sovereign config loader. 530+ altcoin universe defined.</p>
+        </div>
+
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 1 — Data Layer</h3>
+          <p class="text-sm text-slate-400 mt-1">CCXT ingestion, real API bridge, 12-field klines, shard storage. Option B real data only — no placeholders.</p>
+        </div>
+
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 2 — Sovereign Priors</h3>
+          <p class="text-sm text-slate-400 mt-1">Global prior engine, cross-symbol ratios, dual-mode architecture design, sovereign entrypoint.</p>
+        </div>
+
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 3 — Mining Core</h3>
+          <p class="text-sm text-slate-400 mt-1">Reversal signature miner, 8 structural slots, slot_15 veto gate, neural conviction, DNA vector construction.</p>
+        </div>
+
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 4 — Ontology & Storage</h3>
+          <p class="text-sm text-slate-400 mt-1">HDBSCAN phylum clustering, signature Parquet storage, global phylum overlay, ontology management.</p>
+        </div>
+
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 5 — Validation & Ablation</h3>
+          <p class="text-sm text-slate-400 mt-1">Sovereignty validation scripts, E2E pipeline testing, ablation tests (Individual vs Global Prior modes).</p>
+        </div>
+
+        <div class="relative pl-16">
+          <div class="absolute left-5 top-1 w-6 h-6 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Phase 6 — Scaling & Hardening</h3>
+          <p class="text-sm text-slate-400 mt-1">Quant bias override engine (450+ bias points), proxy hardening (Phases 1-3), neural model upgrade, performance optimization.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TECH STACK ===== -->
+<section id="tech" class="py-20 sm:py-28">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Technology</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">Stack &amp; Infrastructure</h2>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto">
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🐍</div>
+        <div class="text-sm font-medium text-white">Python</div>
+        <div class="text-xs text-slate-600">3.10+</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔥</div>
+        <div class="text-sm font-medium text-white">PyTorch</div>
+        <div class="text-xs text-slate-600">compile + CUDA</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">📊</div>
+        <div class="text-sm font-medium text-white">Pandas / NumPy</div>
+        <div class="text-xs text-slate-600">Vectorized rolling</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔗</div>
+        <div class="text-sm font-medium text-white">CCXT</div>
+        <div class="text-xs text-slate-600">Exchange bridge</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🌀</div>
+        <div class="text-sm font-medium text-white">HDBSCAN</div>
+        <div class="text-xs text-slate-600">Phylum clustering</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">⚙️</div>
+        <div class="text-sm font-medium text-white">PyYAML</div>
+        <div class="text-xs text-slate-600">Config-driven</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🧠</div>
+        <div class="text-sm font-medium text-white">GBrain</div>
+        <div class="text-xs text-slate-600">Long-term memory</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🤖</div>
+        <div class="text-sm font-medium text-white">DeRonin</div>
+        <div class="text-xs text-slate-600">Agentic stack</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">📡</div>
+        <div class="text-sm font-medium text-white">AiXBT</div>
+        <div class="text-xs text-slate-600">Market intel</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🔬</div>
+        <div class="text-sm font-medium text-white">Cognee</div>
+        <div class="text-xs text-slate-600">Knowledge graph</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🖥️</div>
+        <div class="text-sm font-medium text-white">AMD RX 560</div>
+        <div class="text-xs text-slate-600">Edge inference</div>
+      </div>
+      <div class="glass-card rounded-xl p-4 text-center neu-border hover:border-cyan-500/20 transition-all group">
+        <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">☁️</div>
+        <div class="text-sm font-medium text-white">L4 / L40S</div>
+        <div class="text-xs text-slate-600">Cloud GPU</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== KEY DIFFERENTIATORS ===== -->
+<section class="py-20 sm:py-28 bg-navy-800/30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <span class="text-xs uppercase tracking-[0.2em] text-cyan-500/70 font-semibold">Why Kronos</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-3">Key Differentiators</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+      <div class="flex items-start gap-4 glass-card rounded-xl p-5 neu-border">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Zero-Hardcode Doctrine</h3>
+          <p class="text-xs text-slate-400 mt-1">No inline literals, no magic numbers. Every value traced to a single config file. Every output reproducible.</p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4 glass-card rounded-xl p-5 neu-border">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Dual-Mode Architecture</h3>
+          <p class="text-xs text-slate-400 mt-1">Individual Mode (primary) + Global Prior Mode (ablatable). Full analysis of cross-symbol vs per-symbol signal value.</p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4 glass-card rounded-xl p-5 neu-border">
+        <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Structural Veto Gate</h3>
+          <p class="text-xs text-slate-400 mt-1">Hard slot_15 threshold prevents weak signals from reaching the neural layer. Absolute, non-negotiable sovereignty.</p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4 glass-card rounded-xl p-5 neu-border">
+        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Bias Override Engine</h3>
+          <p class="text-xs text-slate-400 mt-1">450+ quant bias points catalogued and systematically overridden. From static thresholds to adaptive rolling statistics.</p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4 glass-card rounded-xl p-5 neu-border">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Real Data Only (Option B)</h3>
+          <p class="text-xs text-slate-400 mt-1">No synthetic placeholders, no demo data. Every signature comes from real CCXT-sourced 12-field klines.</p>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-4 glass-card rounded-xl p-5 neu-border">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-white">Edge-Capable Inference</h3>
+          <p class="text-xs text-slate-400 mt-1">Runs on modest hardware (AMD RX 560). Scales to L4/L40S. PyTorch compile + FP8 quantization + CUDA graphs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COPY CONCEPT CARD ===== -->
+<section class="py-12">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="glass-card rounded-2xl p-6 sm:p-8 neu-border text-center">
+      <h3 class="text-lg font-semibold text-white mb-2">📋 Zero-Hardcode Doctrine in One Line</h3>
+      <div class="flex items-center justify-center gap-3">
+        <code id="doctrine-text" class="text-sm font-mono text-cyan-400 bg-navy-900/50 px-4 py-2.5 rounded-lg select-all break-all">
+          "Every value from config. Zero inline literals. Full auditability."
+        </code>
+        <button onclick="copyDoctrine()" class="px-3 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-colors text-sm font-medium whitespace-nowrap">
+          Copy
+        </button>
+      </div>
+      <span id="copy-feedback" class="text-xs text-emerald-400 copy-feedback mt-2 block">Copied to clipboard!</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="border-t border-cyan-500/10 py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg font-bold text-white">⚡ Kronos</span>
+        <span class="text-xs text-slate-600 font-mono">v5.0.0</span>
+      </div>
+      <div class="text-sm text-slate-500 text-center md:text-right">
+        Built with <span class="text-cyan-400">mathematical sovereignty</span> in mind<br>
+        <span class="text-xs text-slate-600">Krinos Math · Causal DNA · Zero-Hardcode</span>
+      </div>
+    </div>
+    <div class="mt-8 pt-6 border-t border-cyan-500/5 text-center text-xs text-slate-700">
+      <span class="font-mono"># KRONOS_V1_ALT</span> &middot; 
+      <span class="font-mono">cfg-driven · real-shards · sovereign</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+// Tab switching
+function switchTab(group, tab) {
+  document.querySelectorAll(`.tab-${group}`).forEach(t => t.classList.remove('bg-cyan-500/10', 'text-cyan-400'));
+  document.querySelectorAll(`[id^="tab-${group}-"]`).forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab-${group}.tab-${tab}`).classList.add('bg-cyan-500/10', 'text-cyan-400');
+  document.getElementById(`tab-${group}-${tab}`).classList.add('active');
+}
+
+// Architecture detail panel
+const archDetails = {
+  ingestion: {
+    badge: 'Layer 1',
+    title: 'Data Ingestion',
+    desc: 'CCXT-powered ingestion engine fetches 12-field klines (open, high, low, close, volume, quote_volume, taker_buy_base_volume, and more) for 530+ altcoin USDT perpetuals. All paths resolve from sovereign config. Real API bridge with rate-limit handling, resumable failed symbols, and parallel ingestion support.'
+  },
+  features: {
+    badge: 'Layer 2',
+    title: 'Feature Engineering',
+    desc: 'Computes 8 structural microstructure proxies bar-by-bar: bid-ask absorption (slot_00), Hurst fractal exhaustion (slot_04), volume-price divergence (slot_07), ADX regime classifier (slot_08), VPIN volume delta (slot_09), multi-scale wick exhaustion (slot_10), dynamic S/R proximity (slot_11), and the composite veto score (slot_15). All multi-window, cfg-driven, vectorized rolling.'
+  },
+  regime: {
+    badge: 'Layer 3',
+    title: 'Regime Detection',
+    desc: 'Multi-proxy regime detection using ADX-inspired trending, VPIN order flow imbalance, Hurst (multi-lag R/S) for mean-reversion, multi-scale wick exhaustion for indecision, and dynamic S/R proximity with decay. Proxy hardening Phases 1-3 complete. Lightweight enough for per-bar per-symbol computation across 530+ assets.'
+  },
+  signal: {
+    badge: 'Layer 4',
+    title: 'Signal Generation',
+    desc: 'The slot_15 structural veto gate is the absolute first gate: if composite confidence < threshold (0.38), the bar never reaches neural conviction. Surviving bars get full 32-slot causal DNA vector construction. Neural conviction computed via Kronos hidden-state features (full model) or scalar L_p norm (lite mode).'
+  },
+  risk: {
+    badge: 'Layer 5',
+    title: 'Risk & Execution',
+    desc: 'Vectorized backtesting engine with causal purity. Live trading via CCXT bridge. Dual-mode: Individual Mode (per-symbol primary) and Global Prior Mode (cross-symbol ablatable injection). All thresholds from config. Slot_15 veto enforced in miner before DNA vector construction.'
+  },
+  memory: {
+    badge: 'Agent Layer',
+    title: 'AI Agent Integrations',
+    desc: 'GBrain provides long-term episodic memory for pattern recall across sessions. DeRonin is the agentic orchestration stack managing complex workflows. AiXBT delivers market intelligence terminal and dashboards. Cognee enables knowledge graph crystallization and ORAC agentic loops for autonomous operation.'
+  },
+  viz: {
+    badge: 'Visualization',
+    title: 'Dashboards & Visualization',
+    desc: 'Rich HTML dashboards for signal analysis, regime visualization, and DNA vector inspection. Includes real-time signal strength monitors, historical analysis views, swing move detection overlays, and mining status trackers with ETA, veto rates, and phylum distribution previews.'
+  }
+};
+
+function showArchDetail(key) {
+  const data = archDetails[key];
+  if (!data) return;
+  const el = document.getElementById('arch-detail');
+  document.getElementById('arch-detail-badge').textContent = data.badge;
+  document.getElementById('arch-detail-title').textContent = data.title;
+  document.getElementById('arch-detail-desc').textContent = data.desc;
+  el.classList.remove('hidden');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  
+  // Highlight the selected node
+  document.querySelectorAll('.arch-node').forEach(n => n.classList.remove('selected'));
+  // Can't easily highlight SVG rect by key, so skip SVG highlight
+}
+
+// Interactive Signal Visualizer
+const weights = {
+  0: 0.15, 4: 0.12, 7: 0.18, 8: 0.10, 
+  9: 0.20, 10: 0.10, 11: 0.15
+};
+
+function updateSignal(slot, val) {
+  val = parseFloat(val);
+  document.getElementById(`val-${slot.toString().padStart(2, '0')}`).textContent = val.toFixed(2);
+  
+  // Recompute composite
+  let composite = 0;
+  for (const [s, w] of Object.entries(weights)) {
+    const el = document.getElementById(`val-${s.padStart(2, '0')}`);
+    if (el) {
+      composite += parseFloat(el.textContent) * w;
+    }
+  }
+  
+  // Display
+  document.getElementById('composite-value').textContent = composite.toFixed(2);
+  document.getElementById('composite-bar').style.width = `${(composite * 100).toFixed(0)}%`;
+  document.getElementById('slot15-value').textContent = composite.toFixed(2);
+  
+  // Veto gate indicator
+  const veto = document.getElementById('veto-indicator');
+  if (composite < 0.38) {
+    veto.className = 'mt-6 flex items-center gap-3 bg-rose-500/10 rounded-xl px-4 py-3 border border-rose-500/20';
+    veto.innerHTML = `
+      <div class="w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse-slow"></div>
+      <span class="text-sm text-rose-300 font-medium">Veto Gate: slot_15 = ${composite.toFixed(2)} (below threshold 0.38) — signal blocked</span>
+    `;
+  } else {
+    veto.className = 'mt-6 flex items-center gap-3 bg-emerald-500/10 rounded-xl px-4 py-3 border border-emerald-500/20';
+    veto.innerHTML = `
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-slow"></div>
+      <span class="text-sm text-emerald-300 font-medium">Veto Gate: slot_15 = ${composite.toFixed(2)} (above threshold 0.38) — signal passed ✓</span>
+    `;
+  }
+}
+
+// Copy doctrine
+function copyDoctrine() {
+  const text = document.getElementById('doctrine-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const fb = document.getElementById('copy-feedback');
+    fb.classList.add('show');
+    setTimeout(() => fb.classList.remove('show'), 2000);
+  });
+}
+
+// No unused scroll observer
+</script>
+
+</body>
+</html>

@@ -1,0 +1,91 @@
+# KRONOS V5.1 — Ablation Study: Aggressive Sizing (v2)
+
+**Date:** 2026-06-10  
+**Config:** `position_max_size: 2.0`, `position_target_vol: 0.18`
+
+---
+
+## 1. Configuration Change
+
+| Parameter | Conservative (v1) | Aggressive (v2) |
+|-----------|------------------|-----------------|
+| `position_max_size` | 1.0 | **2.0** |
+| `position_target_vol` | 0.15 | **0.18** |
+
+These changes allow positions to be up to 2x base size and target higher annual volatility, letting override confidence differences translate into position sizing differences.
+
+---
+
+## 2. Results Comparison (5 symbols × 1500 bars)
+
+### Before (Conservative: max_size=1.0, target_vol=0.15)
+
+| Mode | Sharpe | Max DD | Calmar | PF |
+|------|--------|--------|--------|-----|
+| **LEGACY** (no overrides) | 0.767 | -0.0579 | 3.663 | 1.026 |
+| **FULL OVERRIDE** | **1.156** | **-0.0414** | **4.206** | inf |
+
+### After (Aggressive: max_size=2.0, target_vol=0.18)
+
+| Mode | Sharpe | Max DD | Calmar | PF |
+|------|--------|--------|--------|-----|
+| **LEGACY** (no overrides) | 0.767 | **-0.0691** | 3.791 | 1.026 |
+| **FULL OVERRIDE** | **1.156** | **-0.0494** | **4.327** | inf |
+
+### Key Change: Max Drawdown Increased (Expected)
+
+| Mode | Conservative MDD | Aggressive MDD | Change |
+|------|-----------------|----------------|--------|
+| Legacy | -0.0579 | **-0.0691** | **-19.3% worse** |
+| Override | -0.0414 | **-0.0494** | **-19.3% worse** |
+
+Both modes degrade proportionally — the more aggressive sizing increases risk equally. Legacy mode's MDD went from -0.058 to -0.069, Override from -0.041 to -0.049. The delta between them remains the same: Override still has **28.5% lower MDD** than Legacy.
+
+---
+
+## 3. Override vs Legacy Differentiation
+
+### What Changed
+- **Max DD**: Override advantage unchanged at ~0.02 improvement over Legacy
+- **Sharpe**: Both modes unchanged (0.767 vs 1.156)
+- **Calmar**: Both improved slightly due to higher target vol (Legacy 3.663→3.791, Override 4.206→4.327)
+- **Groups**: Still identical per-symbol (synthetic data limitation)
+
+### Per-Symbol MDD Changes
+
+| Symbol | Conservative Override MDD | Aggressive Override MDD | Delta |
+|--------|--------------------------|------------------------|-------|
+| SYN000 | 0.0000 | 0.0000 | 0.000 |
+| SYN001 | -0.0446 | **-0.0533** | -0.009 |
+| SYN002 | -0.0489 | **-0.0585** | -0.010 |
+| SYN003 | -0.0843 | **-0.1005** | -0.016 |
+| SYN004 | -0.0289 | **-0.0347** | -0.006 |
+
+All symbols show higher MDD with aggressive sizing (expected). The relative ranking across symbols is preserved.
+
+---
+
+## 4. Conclusions
+
+### What the Aggressive Sizing Reveals
+
+1. **Override advantage is stable** — Override mode maintains 28.5% lower MDD regardless of sizing aggressiveness
+2. **Synthetic data limitation persists** — Groups remain identical because synthetic data's statistical structure doesn't differentiate override point contributions
+3. **The ablation framework works correctly** — the per-symbol differences between Conservative and Aggressive runs prove the sizing changes propagate through the system
+
+### Next Steps for Real Differentiation
+
+| Priority | Experiment | Expected Outcome |
+|----------|-----------|-----------------|
+| **1** | Run on 100+ real symbols | Groups will show different MDD/Sharpe contributions on real data |
+| **2** | Run individual point ablation (points 01, 64, 72, 48, 52, 15, 02) | Show marginal contribution of each |
+| **3** | Walk-forward with ablation | Verify group stability over time |
+| **4** | Test combined "Core Dynamic + Risk & Tail + Volatility" vs Full | Validate the minimal high-impact set |
+
+### Current Config (params_yaml.txt)
+```yaml
+position_max_size: 2.0
+position_target_vol: 0.18
+position_sizing_method: "vol_adjusted"
+```
+The more aggressive sizing is appropriate for future ablation studies to allow group differentiation.

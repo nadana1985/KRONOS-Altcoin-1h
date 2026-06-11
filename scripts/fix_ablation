@@ -1,0 +1,126 @@
+"""Fix the broken ablation checks — remove from function signatures and insert properly."""
+import os
+import re
+import sys
+
+OVERRIDE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "kronos", "quant_spec", "overrides")
+
+POINT_IDS = [1, 2, 3, 6, 11, 15, 19, 23, 24, 25, 28, 29, 35, 36, 44,
+             46, 47, 48, 52, 56, 57, 64, 66, 69, 72, 82]
+
+
+def fix_file(filepath, pid):
+    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+        content = f.read()
+
+    func_name = f"compute_point_{pid:02d}_override"
+    pstr = f"{pid:02d}"
+
+    # STEP 1: Remove broken ablation code from function signature
+    # Pattern: def compute_point_XX_override(\n            return raw_value\n        if not is_point_enabled("XX"):
+    old = re.search(
+        r"def " + func_name + r"\(\s*\n\s+return raw_value\s*\n\s+if not is_point_enabled\(\"" + pstr + r"\"\):\s*\n\s+from config\.ablation_bootstrap import is_point_enabled\s*\n\s+# When this point is disabled via config-driven ablation, return raw_value immediately\.\s*\n\s+# ── Ablation early-return ──",
+        content
+    )
+    if old:
+        content = content[:old.start()] + f"def {func_name}(" + content[old.end():]
+
+    # STEP 2: Find the function definition
+    m = re.search(r"def " + func_name + r"\(", content)
+    if not m:
+        return False, "no function found"
+
+    # Find closing paren of signature (handles multi-line signatures)
+    i = m.end()
+    paren = 1
+    while i < len(content) and paren > 0:
+        if content[i] == "(":
+            paren += 1
+        elif content[i] == ")":
+            paren -= 1
+        i += 1
+    sig_end = i
+
+    # STEP 3: Find first code line after signature + docstring
+    after_sig = content[sig_end:]
+    lines = after_sig.split("\n")
+
+    offset = 0
+    in_docstring = False
+    for j, line in enumerate(lines):
+        s = line.strip()
+        if not in_docstring and (s.startswith('"""') or s.startswith("'''")):
+            in_docstring = True
+            if (s.endswith('"""') and len(s) > 3) or (s.endswith("'''") and len(s) > 3):
+                in_docstring = False
+                offset = j + 1
+                continue
+            offset = j + 1
+            continue
+        elif in_docstring:
+            if s.endswith('"""') or s.endswith("'''"):
+                in_docstring = False
+                offset = j + 1
+                continue
+            offset = j + 1
+            continue
+        elif s and not s.startswith("#"):
+            offset = j
+            break
+
+    # STEP 4: Calculate indent from first code line
+    first_code = lines[offset] if offset < len(lines) else ""
+    indent = len(first_code) - len(first_code.lstrip()) if first_code.strip() else 4
+
+    # STEP 5: Build ablation check
+    check = [
+        (" " * indent) + "# ── Ablation early-return ──",
+        (" " * indent) + "# When this point is disabled via config-driven ablation, return raw_value immediately.",
+        (" " * indent) + "from config.ablation_bootstrap import is_point_enabled",
+        (" " * indent) + f'if not is_point_enabled("{pstr}"):',
+        (" " * indent) + "    return raw_value",
+        "",
+    ]
+
+    # STEP 6: Insert before first code line
+    before = lines[:offset]
+    after = lines[offset:]
+    new_lines = before + check + after
+    new_after = "\n".join(new_lines)
+
+    new_content = content[:sig_end] + new_after
+
+    # STEP 7: Write back
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+    return True, "fixed"
+
+
+def main():
+    print("=" * 60)
+    print("Fixing ablation checks in override point modules")
+    print("=" * 60)
+
+    ok = 0
+    for pid in POINT_IDS:
+        fn = f"point_{pid:02d}.py"
+        fp = os.path.join(OVERRIDE_DIR, fn)
+        if not os.path.exists(fp):
+            print(f"  [SKIP] {fn} not found")
+            continue
+
+        result, msg = fix_file(fp, pid)
+        if result:
+            print(f"  [FIXED] {fn}")
+            ok += 1
+        else:
+            print(f"  [SKIP] {fn}: {msg}")
+
+    print(f"\n{ok}/{len(POINT_IDS)} files fixed.")
+    print("Run 'python backtest/run_backtest.py --symbols 2 --bars 500' to verify.")
+
+
+if __name__ == "__main__":
+    main()

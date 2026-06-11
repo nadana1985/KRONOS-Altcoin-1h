@@ -122,6 +122,39 @@ def get_storage_path(cfg: Dict[str, Any], key: str) -> str:
     return os.path.normpath(str(path))
 
 
+TIMEFRAME_MS_MAP: Dict[str, int] = {
+    "1m": 60 * 1000,
+    "3m": 3 * 60 * 1000,
+    "5m": 5 * 60 * 1000,
+    "15m": 15 * 60 * 1000,
+    "30m": 30 * 60 * 1000,
+    "1h": 60 * 60 * 1000,
+    "2h": 2 * 60 * 60 * 1000,
+    "4h": 4 * 60 * 60 * 1000,
+    "6h": 6 * 60 * 60 * 1000,
+    "8h": 8 * 60 * 60 * 1000,
+    "12h": 12 * 60 * 60 * 1000,
+    "1d": 24 * 60 * 60 * 1000,
+    "3d": 3 * 24 * 60 * 60 * 1000,
+    "1w": 7 * 24 * 60 * 60 * 1000,
+}
+
+
+def get_timeframe_ms(timeframe_str: str, cfg: Dict[str, Any] = None) -> int:
+    """Resolve timeframe string into milliseconds using project config or default map."""
+    if cfg and "time_constants" in cfg:
+        tc = cfg["time_constants"]
+        unit = timeframe_str[-1]
+        try:
+            val = int(timeframe_str[:-1])
+            multipliers = tc.get("unit_multipliers", {})
+            if unit in multipliers:
+                return val * multipliers[unit] * tc.get("ms_per_second", 1000)
+        except Exception:
+            pass
+    return TIMEFRAME_MS_MAP.get(timeframe_str, 3600000)
+
+
 if __name__ == "__main__":
     cfg = load_sovereign_config()
     print("=== Sovereign Config Loaded ===")

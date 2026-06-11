@@ -15,11 +15,15 @@ Complete mathematical definitions, formulas, and engineering explanations for ev
 
 | Layer | Slots | Description |
 |-------|-------|-------------|
-| **Structural** | 00, 04, 07, 08, 09, 10, 11, 15 | Core market micro-structure (current: 8 implemented) |
+| **Structural** | 00, 04, 07, 08, 09, 10, 11, 15 | Core market micro-structure (8 implemented) |
 | **Veto Composite** | 15 | Weighted sovereign gate (enforced in miner) |
-| **Neural Embeddings** | 16–23 | Currently: single neural_conviction (L_p) replicated (placeholder) |
-| **Auxiliary** | 24–27 | Simple proxies (vol delta, MFE, residual) |
-| **Metadata** | 28–31 | Simple proxies + post-hoc phylum (HDBSCAN) |
+| **Neural Embeddings** | 16–23 | Neural conviction features (scalar or 8-dim) |
+| **Auxiliary** | 24–31 | Vol delta, MFE, neural intensity, residual, phylum |
+| **Microstructure** | 32–33 | Phase 1: Corwin-Schultz spread, Amihud illiquidity |
+| **Volatility** | 34–41 | Phase 2A: 8 vol estimators (YZ, RS, MAD, GK, Park, GARCH, Downside, BA-Filtered) |
+| **Tail Risk** | 42–45 | Phase 2A: EVT, VaR, Expected Shortfall, Huber |
+| **Supporting Risk** | 46–47 | Phase 2A: Kalman beta, CUSUM break detector |
+| **Validation Metadata** | meta_* | Phase 2B–3: Purge ratio, causal validation, S/R, portfolio |
 
 ---
 
@@ -422,30 +426,213 @@ Then included in the signature dict as "dna_vector": dna_vector (saved as column
 
 All values, eps, factors, and zero expressions come exclusively from neural (no inline literals). The vector is causal and available for E2E / global prior / ontology downstream. Structural veto (slot_15) remains absolute and first.
 
-This is the current (simplified proxy) implementation of the 32-slot DNA. Full distinct neural embeddings (16-23), real HMM (08), and richer aux/metadata will require further wiring.
+### Phase 1–3 Extended Construction (after the base 32-slot vector)
 
-**Reality Note**: The 32-key `dna_vector` is fully constructed and validated in E2E, but contains significant redundancy (8 identical neural slots + multiple linear transforms of core variables). Effective dimensionality is lower than 32. HDBSCAN uses only structural keys. This is explicitly documented for transparency and future hardening.
+```python
+# Phase 1: Microstructure (P17, P21)
+dna_vector["slot_32_spread"] = compute_point_17_override(0.001, df, symbol, engine=_ENGINE)
+dna_vector["slot_33_illiq_weight"] = compute_point_21_override(1.0, df, symbol, engine=_ENGINE)
+
+# Phase 2A: Volatility Toolkit (P46-52, P57) — shared _raw_vol baseline
+_c_close = pd.to_numeric(df.get("close"), errors="coerce")
+_raw_vol = float(_c_close.pct_change().std()) if len(_c_close) > 5 else 0.01
+dna_vector["slot_34_yz_vol"]    = compute_point_46_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_35_rs_vol"]    = compute_point_47_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_36_mad_vol"]   = compute_point_48_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_37_gk_vol"]    = compute_point_49_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_38_park_vol"]  = compute_point_50_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_39_garch_vol"] = compute_point_51_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_40_downside_vol"] = compute_point_52_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_41_ba_filtered_vol"] = compute_point_57_override(_raw_vol, df, symbol, engine=_ENGINE)
+
+# Phase 2A: Tail Risk (P61, P64, P66) — reuses _raw_vol
+dna_vector["slot_42_evt_tail_vol"] = compute_point_61_override(_raw_vol, df, symbol, engine=_ENGINE)
+_var_es = compute_point_64_override(_raw_vol, df, symbol, engine=_ENGINE)
+dna_vector["slot_43_var"] = _var_es.get("var", 0.02)
+dna_vector["slot_44_es"]  = _var_es.get("es", 0.03)
+dna_vector["slot_45_huber_return"] = compute_point_66_override(0.0, df, symbol, engine=_ENGINE)
+
+# Phase 2A: Supporting Risk (P71, P74)
+dna_vector["slot_46_kalman_beta"]  = compute_point_71_override(1.0, df, symbol, engine=_ENGINE)
+dna_vector["slot_47_cusum_break"] = compute_point_74_override(0.0, df, symbol, engine=_ENGINE)
+
+# Phase 2B: Validation Metadata (P35, P82)
+dna_vector["meta_purge_ratio"]      = round(1.0 - _purged / max(_raw_train, 1), 3)
+dna_vector["meta_effective_train"]  = int(_purged)
+dna_vector["meta_causal_validated"] = 1.0  # always safe by construction
+
+# Phase 3: Adaptive S/R (P25, P26)
+dna_vector["meta_sr_lambda"]    = round(_sr_lambda, 5)
+dna_vector["meta_sr_proximity"] = round(_sr_proximity, 5)
+
+# Phase 3: Portfolio/Risk (P97, P98, P96 placeholder, P99 placeholder)
+dna_vector["meta_jensen_alpha"]      = round(compute_point_97_override(...), 6)
+dna_vector["meta_autocorr_flag"]     = round(compute_point_98_override(...), 4)
+dna_vector["meta_portfolio_weight"]  = 0.25   # placeholder (needs multi-asset returns)
+dna_vector["meta_risk_parity_weight"] = 0.25  # placeholder (needs multi-asset returns)
+```
+
+**Total active slots/fields: ~48 per signature** (8 structural + 8 neural + 16 aux/meta + 2 microstructure + 8 volatility + 4 tail risk + 2 risk + 9 metadata).
+
+**Reality Note**: The 32-key base `dna_vector` is fully constructed and validated in E2E. The Phase 1–3 extensions add ~16 additional keys via override wiring. All override values respect the BiasOverrideEngine, liquidity tiers, and master switch. Fallback defaults ensure the system degrades gracefully on any override failure.
 
 ---
 
-## Quick Reference Table
+## Quant Bias Override System
 
-| Slot | Name | Range | Layer | Key Signal |
-|------|------|--------|-------|------------|
-| slot_00 | Bid-Ask Absorption | [-1, +1] | Structural | Direction & conviction of order flow |
-| slot_04 | Fractal Hurst Exhaustion | [-0.5, +0.5] | Structural | Mean-reversion probability |
-| slot_07 | Volume-Price Divergence | z-score | Structural | Unsupported price move |
-| slot_08 | HMM Regime | [0, 1] | Structural | High-vol regime probability |
-| slot_09 | Volume Delta Pressure | [-1, +1] | Structural | Net buy/sell dominance |
-| slot_10 | Wick Exhaustion | [0, 1] | Structural | Doji/indecision bar detection |
-| slot_11 | S/R KDE Proximity | [0, 1] | Structural | Price near key level |
-| slot_15 | Veto Composite | [0, 1] | Gate | Combined structural confidence |
-| slot_16–23 | Neural Embeddings (×8) | real | Neural | Transformer latent space |
-| slot_24 | Vol Forecast Delta | real | Auxiliary | Volatility direction change |
-| slot_25 | MFE Projection | [0, ~2] | Auxiliary | Causal upside estimate |
-| slot_26 | Neural Regime Intensity | [0, 1] | Auxiliary | Conviction percentile |
-| slot_27 | Structural-Neural Residual | [0, ∞) | Auxiliary | Disagreement between layers |
-| slot_28 | Phylum Cluster | {-1,0,1,2} | Metadata | Post-hoc HDBSCAN family |
-| slot_29 | Recovery Proxy | [0, 1] | Metadata | Causal recovery estimate |
-| slot_30 | Post-Hoc MFE | [0, 50] | Metadata | Actual forward gain |
-| slot_31 | Post-Hoc MAE | [0, 1] | Metadata | Actual forward drawdown |
+**Status:** 100/100 points implemented, validated, and registered in `BiasOverrideEngine`.
+
+The override system replaces hardcoded manual biases with config-driven, liquidity-tier-aware quant replacements. All parameters live in `kronos/config/liquidity_tiers.yaml` under `overrides.point_XX`. Zero hardcoded numbers in Python override logic.
+
+### Architecture
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Registry | `bias_override_registry.yaml` | Single source of truth for all 100 points |
+| Engine | `bias_override_engine.py` | Orchestration layer: decides *whether* and *which* override to apply |
+| Liquidity Classifier | `liquidity_classifier.py` | Dynamic 5-tier per-symbol classification |
+| Override Implementations | `overrides/point_XX.py` | Per-point pure computation + engine wrapper |
+| Shared Utilities | `overrides/utils.py` | Reusable math functions across all points |
+| Config | `liquidity_tiers.yaml` | All tunable parameters (no Python literals) |
+
+### Integration Priority
+
+**Phase 1 (Immediate):** Points 01, 02, 17, 21, 71, 72, 74, 93, 94, 100
+**Phase 2 (Strong Value):** Points 46-60, 61, 64, 66, 35, 82, 25, 26
+**Phase 3 (ML Hygiene):** Remaining points (clustering, feature selection, model evaluation, portfolio)
+
+### Master Switch
+
+```python
+from kronos.quant_spec.execution_simulator import set_overrides_enabled
+set_overrides_enabled(False)  # Instant revert to legacy behavior
+```
+
+### Execution Simulator
+
+`kronos/quant_spec/execution_simulator.py` combines Points 93, 94, 95, 100 into a single execution pipeline replacing instant-fill-at-close backtesting.
+
+**Reference**: [Integration Roadmap](KRONOS_V1_ALT_INTEGRATION_ROADMAP.md), [Mining Readiness Checklist](KRONOS_V1_ALT_MINING_READINESS_CHECKLIST.md)
+
+---
+
+---
+
+## LAYER 6 — Extended DNA Vector (Phase 1–3 Overrides)
+
+These slots are generated by the BiasOverrideEngine and wired into `dna_vector` during signature mining. They extend the original 32-slot vector with microstructure metrics, volatility estimates, tail risk, S/R metadata, and portfolio metadata.
+
+### Phase 1 — Microstructure (slots 32–33)
+
+| Slot | Name | Override Point | Purpose | Fallback |
+|------|------|---------------|---------|----------|
+| `slot_32_spread` | Corwin-Schultz Spread | P17 | Bid-ask spread estimate from high-low range | 0.001 |
+| `slot_33_illiq_weight` | Amihud Illiquidity | P21 | Illiquidity weight for signal adjustment | 1.0 |
+
+### Phase 2A — Volatility Toolkit (slots 34–41)
+
+| Slot | Name | Override Point | Purpose | Fallback |
+|------|------|---------------|---------|----------|
+| `slot_34_yz_vol` | Yang-Zhang Volatility | P46 | Drift + overnight + RS combined volatility | 0.01 |
+| `slot_35_rs_vol` | Rogers-Satchell Volatility | P47 | Drift-robust range-based volatility | 0.01 |
+| `slot_36_mad_vol` | MAD Robust Volatility | P48 | Median Absolute Deviation (outlier-robust) | 0.01 |
+| `slot_37_gk_vol` | Garman-Klass Volatility | P49 | Overnight gap + range-based volatility | 0.01 |
+| `slot_38_park_vol` | Parkinson Volatility | P50 | High-low range-based volatility | 0.01 |
+| `slot_39_garch_vol` | GARCH(1,1) Conditional Vol | P51 | Volatility clustering / memory | 0.01 |
+| `slot_40_downside_vol` | Downside Semi-Volatility | P52 | Asymmetric risk (negative returns only) | 0.01 |
+| `slot_41_ba_filtered_vol` | Bid-Ask Filtered RS Vol | P57 | Noise-filtered range-based volatility | 0.01 |
+
+### Phase 2A — Tail Risk & Robust Statistics (slots 42–45)
+
+| Slot | Name | Override Point | Purpose | Fallback |
+|------|------|---------------|---------|----------|
+| `slot_42_evt_tail_vol` | EVT/GPD Tail Volatility | P61 | Extreme Value Theory tail risk | 0.02 |
+| `slot_43_var` | Value at Risk (95%) | P64 | Maximum expected loss at 95% confidence | 0.02 |
+| `slot_44_es` | Expected Shortfall (95%) | P64 | Average loss beyond VaR (tail mean) | 0.03 |
+| `slot_45_huber_return` | Huber Robust Return | P66 | Outlier-resistant return estimator | 0.0 |
+
+### Phase 2A — Supporting Risk (slots 46–47)
+
+| Slot | Name | Override Point | Purpose | Fallback |
+|------|------|---------------|---------|----------|
+| `slot_46_kalman_beta` | Kalman Dynamic Beta | P71 | Time-varying beta (raw=1.0 without market data) | 1.0 |
+| `slot_47_cusum_break` | CUSUM Structural Break | P74 | Binary break indicator (0.0 or 1.0) | 0.0 |
+
+### Phase 2B — Validation Metadata (meta_ fields)
+
+| Field | Override Point | Purpose | Source |
+|-------|---------------|---------|--------|
+| `meta_purge_ratio` | P35 | Fraction of training data lost to purging + embargo | Miner (mine_reversal_signature) |
+| `meta_effective_train` | P35 | Effective training samples after purging | Miner |
+| `meta_causal_validated` | P82 | 1.0 if cross-sectional features are causally safe | Miner (always 1.0 by construction) |
+
+### Phase 3 — Adaptive S/R Metadata
+
+| Field | Override Point | Purpose | Source |
+|-------|---------------|---------|--------|
+| `meta_sr_lambda` | P25 | Entropy-adaptive S/R memory decay rate | Miner |
+| `meta_sr_proximity` | P26 | Cauchy proximity kernel value for nearest S/R | Miner |
+
+### Phase 3 — Portfolio & Risk Metadata
+
+| Field | Override Point | Purpose | Source |
+|-------|---------------|---------|--------|
+| `meta_jensen_alpha` | P97 | Beta-neutral risk-adjusted alpha (0.0 without market returns) | Miner |
+| `meta_autocorr_flag` | P98 | Autocorrelation stability flag (0–1, self-lag proxy for cointegration) | Miner |
+| `meta_portfolio_weight` | P96 | Min-variance portfolio weight (placeholder=0.25 without multi-asset returns) | Miner |
+| `meta_risk_parity_weight` | P99 | Risk parity weight (placeholder=0.25 without multi-asset returns) | Miner |
+
+> **Note:** Points 96, 99 require cross-sectional returns for full computation. Placeholder values are used in the single-asset miner. Full computation is available via `EvaluationHarness` when multi-asset data is provided.
+
+> **EvaluationHarness** (`kronos/quant_spec/evaluation.py`) provides additional validation metadata not stored in the signature: CPCV path generation (P79), deflated Sharpe ratio (P80), Monte Carlo DSR (P90), feature quality metrics (P76, P77, P84, P86), training loss metrics (P83, P88), and ensemble state metrics (P78, P81, P85, P87, P89). These are computed on-demand for model evaluation, not stored per-signature.
+
+---
+
+## Quick Reference Table — Full DNA Vector
+
+| Slot / Field | Name | Range | Layer | Phase | Override |
+|--------------|------|--------|-------|-------|----------|
+| slot_00 | Bid-Ask Absorption | [-1, +1] | Structural | Legacy | — |
+| slot_04 | Fractal Hurst Exhaustion | [-0.5, +0.5] | Structural | Legacy | — |
+| slot_07 | Volume-Price Divergence | z-score | Structural | Legacy | — |
+| slot_08 | HMM Regime | [0, 1] | Structural | Legacy | — |
+| slot_09 | Volume Delta Pressure | [-1, +1] | Structural | Legacy | — |
+| slot_10 | Wick Exhaustion | [0, 1] | Structural | Legacy | — |
+| slot_11 | S/R KDE Proximity | [0, 1] | Structural | Legacy | — |
+| slot_15 | Veto Composite | [0, 1] | Gate | Legacy | P01 (dynamic veto) |
+| slot_16–23 | Neural Embeddings (×8) | real | Neural | Legacy | — |
+| slot_24 | Vol Forecast Delta | real | Auxiliary | Legacy | — |
+| slot_25 | MFE Projection | [0, ~2] | Auxiliary | Legacy | — |
+| slot_26 | Neural Regime Intensity | [0, 1] | Auxiliary | Legacy | — |
+| slot_27 | Structural-Neural Residual | [0, ∞) | Auxiliary | Legacy | — |
+| slot_28 | Phylum Cluster | {-1,0,1,2} | Metadata | Legacy | — |
+| slot_29 | Recovery Proxy | [0, 1] | Metadata | Legacy | — |
+| slot_30 | Post-Hoc MFE | [0, 50] | Metadata | Legacy | — |
+| slot_31 | Post-Hoc MAE | [0, 1] | Metadata | Legacy | — |
+| slot_32_spread | Corwin-Schultz Spread | [0, 0.1] | Microstructure | Phase 1 | P17 |
+| slot_33_illiq_weight | Amihud Illiquidity | [0, 10] | Microstructure | Phase 1 | P21 |
+| slot_34_yz_vol | Yang-Zhang Vol | [0, 0.5] | Volatility | Phase 2A | P46 |
+| slot_35_rs_vol | Rogers-Satchell Vol | [0, 0.5] | Volatility | Phase 2A | P47 |
+| slot_36_mad_vol | MAD Robust Vol | [0, 0.5] | Volatility | Phase 2A | P48 |
+| slot_37_gk_vol | Garman-Klass Vol | [0, 0.5] | Volatility | Phase 2A | P49 |
+| slot_38_park_vol | Parkinson Vol | [0, 0.5] | Volatility | Phase 2A | P50 |
+| slot_39_garch_vol | GARCH(1,1) Vol | [0, 0.5] | Volatility | Phase 2A | P51 |
+| slot_40_downside_vol | Downside Semi-Vol | [0, 0.5] | Volatility | Phase 2A | P52 |
+| slot_41_ba_filtered_vol | BA Filtered RS Vol | [0, 0.5] | Volatility | Phase 2A | P57 |
+| slot_42_evt_tail_vol | EVT/GPD Tail Vol | [0, 0.5] | Tail Risk | Phase 2A | P61 |
+| slot_43_var | Value at Risk | [0, 0.5] | Tail Risk | Phase 2A | P64 |
+| slot_44_es | Expected Shortfall | [0, 0.5] | Tail Risk | Phase 2A | P64 |
+| slot_45_huber_return | Huber Robust Return | [-1, 1] | Tail Risk | Phase 2A | P66 |
+| slot_46_kalman_beta | Kalman Dynamic Beta | real | Risk | Phase 2A | P71 |
+| slot_47_cusum_break | CUSUM Break | {0, 1} | Risk | Phase 2A | P74 |
+| meta_purge_ratio | Purge Ratio | [0, 0.8] | Validation | Phase 2B | P35 |
+| meta_effective_train | Effective Train Size | int | Validation | Phase 2B | P35 |
+| meta_causal_validated | Causal Validated | {0, 1} | Validation | Phase 2B | P82 |
+| meta_sr_lambda | SR Decay Rate | [0.01, 0.5] | S/R | Phase 3 | P25 |
+| meta_sr_proximity | SR Proximity | [0, 1] | S/R | Phase 3 | P26 |
+| meta_jensen_alpha | Jensen Alpha | real | Portfolio | Phase 3 | P97 |
+| meta_autocorr_flag | Autocorr Flag | [0, 1] | Portfolio | Phase 3 | P98 |
+| meta_portfolio_weight | Portfolio Weight | [0, 0.3] | Portfolio | Phase 3 | P96 |
+| meta_risk_parity_weight | Risk Parity Weight | [0, 0.3] | Portfolio | Phase 3 | P99 |
+
+**Total active slots/fields: ~48 per signature** (8 structural + 8 neural + 16 aux/meta + 2 microstructure + 8 volatility + 4 tail risk + 2 risk + 9 metadata)

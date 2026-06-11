@@ -60,6 +60,14 @@ def discover_symbols() -> list:
     except Exception as e:
         print(f"Real {exchange_name} discovery failed: {e}")
     
+    if cfg["data_fetch"].get("use_real", False):
+        raw_shards_dir = cfg["storage"]["raw_shards_dir"]
+        timeframe = cfg["project"]["timeframe"]
+        on_disk = discover_symbols_from_shards(raw_shards_dir, timeframe)
+        if on_disk:
+            print(f"[DISCOVERY] CCXT load failed. Recovered {len(on_disk)} symbols from raw shards directory.")
+            return on_disk
+            
     # Fallback using data_fetch.symbol_fallback section (cfg only)
     discovered = []
     mapping = cfg["data_fetch"]["symbol_mapping"]
@@ -90,7 +98,7 @@ def discover_symbols_from_shards(raw_shards_dir: str, timeframe: str) -> list:
     discovered = []
     for path in sorted(shard_files):
         basename = os.path.basename(path)
-        # Expect: SYMBOLNAME_TIMEFRAME.parquet  (e.g. BTC_USDT_USDT_1h.parquet)
+        # Expect: SYMBOLNAME_TIMEFRAME.parquet  (e.g. BTC_USDT_USDT_TF.parquet)
         suffix = f"_{timeframe}.parquet"
         if basename.endswith(suffix):
             symbol = basename[: -len(suffix)]

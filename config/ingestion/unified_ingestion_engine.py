@@ -301,6 +301,12 @@ def fetch_full_history(symbol: str, ex, logger, cfg):
         combined_df.drop_duplicates(subset=['timestamp'], keep='last', inplace=True)
         combined_df.sort_values('timestamp', inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
+        # Strict Schema Enforcement
+        for col in combined_df.columns:
+            if col in ['timestamp', 'close_time', 'count']:
+                combined_df[col] = pd.to_numeric(combined_df[col], errors='coerce').fillna(0).astype('int64')
+            elif col != 'ignore':
+                combined_df[col] = pd.to_numeric(combined_df[col], errors='coerce').astype('float64')
         validate_and_fix_data(combined_df, symbol, timeframe_ms, logger, cfg)
         if db_format == "parquet":
             combined_df.to_parquet(filepath, compression='snappy', index=False)
@@ -449,9 +455,10 @@ def _detect_delisted(cfg, active_symbols: set, logger) -> int:
     os.makedirs(archive_dir, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
     active_safe = {_safe_name(s) for s in active_symbols}
-    archived = 0
+    tf = cfg["project"]["timeframe"]
+    suffix_replace = f"_{tf}.parquet"
     for sp in glob.glob(os.path.join(raw_dir, "*.parquet")):
-        base = os.path.basename(sp).replace("_1h.parquet", "").replace(".parquet", "")
+        base = os.path.basename(sp).replace(suffix_replace, "").replace(".parquet", "")
         if base not in active_safe:
             dest = os.path.join(archive_dir, f"{base}_{ts}.parquet")
             shutil.move(sp, dest)
@@ -489,11 +496,12 @@ def fetch_all_symbols_data(symbols_override: list | None = None) -> None:
     if sym_cfg.get("refresh_discovery", True):
         active_set = set(all_symbols)
         # Compare with on-disk shards to detect new listings
-        import glob
         raw_dir = get_storage_path(cfg, "raw_shards_dir")
         on_disk = set()
+        tf_sh = proj_cfg["timeframe"]
+        suffix_replace = f"_{tf_sh}.parquet"
         for sp in glob.glob(os.path.join(raw_dir, "*.parquet")):
-            base = os.path.basename(sp).replace("_1h.parquet", "").replace(".parquet", "")
+            base = os.path.basename(sp).replace(suffix_replace, "").replace(".parquet", "")
             # Reverse safe_name: normalise for comparison — both are in safe_name format
             on_disk.add(base)
         # Derive on-disk in real format (split safe_name back)
@@ -554,8 +562,10 @@ def generate_metrics_summary(cfg, tracker) -> None:
     missing_quote_vol = 0
     missing_taker = 0
     bar_counts = []
+    tf = cfg["project"]["timeframe"]
+    suffix_replace = f"_{tf}.parquet"
     for sp in shards:
-        sym = os.path.basename(sp).replace("_1h.parquet", "").replace(".parquet", "")
+        sym = os.path.basename(sp).replace(suffix_replace, "").replace(".parquet", "")
         df = pd.read_parquet(sp)
         n = len(df)
         total_bars += n
@@ -621,8 +631,11 @@ def generate_html_summary(cfg, tracker) -> None:
     missing_taker = 0
     bar_counts = []
     health_rows = []
+    tf = cfg["project"]["timeframe"]
+    suffix_replace = f"_{tf}.parquet"
+    timeframe_ms = parse_timeframe_to_ms(tf, cfg["time_constants"])
     for sp in shards:
-        sym = os.path.basename(sp).replace("_1h.parquet", "").replace(".parquet", "")
+        sym = os.path.basename(sp).replace(suffix_replace, "").replace(".parquet", "")
         df = pd.read_parquet(sp)
         n = len(df)
         total_bars += n
@@ -632,7 +645,7 @@ def generate_html_summary(cfg, tracker) -> None:
         # Health compute (inline simplified)
         present = [c for c in CRITICAL_COLS if c in df.columns]
         completeness = 100.0 * (1.0 - df[present].isna().any(axis=1).mean()) if present else 100.0
-        gap_count = int((df['timestamp'].diff().dropna() != 3600000).sum()) if len(df) > 1 else 0
+        gap_count = int((df['timestamp'].diff().dropna() != timeframe_ms).sum()) if len(df) > 1 else 0
         nan_pct = 100.0 * int(df[present].isna().any(axis=1).sum()) / max(n, 1) if present else 0.0
         outlier_count = sum(_detect_outliers(df[c]) for c in ["close","volume"] if c in df.columns and df[c].dtype.kind in "fc")
         outlier_pct = 100.0 * outlier_count / max(n, 1)
@@ -725,8 +738,10 @@ def inspect_missing_fields() -> dict:
     import glob
     shards = sorted(glob.glob(os.path.join(raw_dir, "*.parquet")))
     report = {"total_shards": len(shards), "missing_quote_volume": [], "missing_taker_buy_base_volume": [], "missing_both": []}
+    tf = cfg["project"]["timeframe"]
+    suffix_replace = f"_{tf}.parquet"
     for sp in shards:
-        sym = os.path.basename(sp).replace("_1h.parquet", "").replace(".parquet", "")
+        sym = os.path.basename(sp).replace(suffix_replace, "").replace(".parquet", "")
         df = pd.read_parquet(sp)
         missing_qv = "quote_volume" not in df.columns
         missing_tbv = "taker_buy_base_volume" not in df.columns
@@ -760,13 +775,16 @@ def _compute_health_summary(cfg, logger) -> dict:
     raw_dir = get_storage_path(cfg, "raw_shards_dir")
     shards = sorted(glob.glob(os.path.join(raw_dir, "*.parquet")))
     scores = []
+    tf = cfg["project"]["timeframe"]
+    suffix_replace = f"_{tf}.parquet"
+    timeframe_ms = parse_timeframe_to_ms(tf, cfg["time_constants"])
     for sp in shards:
-        sym = os.path.basename(sp).replace("_1h.parquet", "").replace(".parquet", "")
+        sym = os.path.basename(sp).replace(suffix_replace, "").replace(".parquet", "")
         df = pd.read_parquet(sp)
         n = len(df)
         present = [c for c in CRITICAL_COLS if c in df.columns]
         completeness = 100.0 * (1.0 - df[present].isna().any(axis=1).mean()) if present else 100.0
-        gap_count = int((df['timestamp'].diff().dropna() != 3600000).sum()) if len(df) > 1 else 0
+        gap_count = int((df['timestamp'].diff().dropna() != timeframe_ms).sum()) if len(df) > 1 else 0
         nan_pct = 100.0 * int(df[present].isna().any(axis=1).sum()) / max(n, 1) if present else 0.0
         outlier_count = sum(_detect_outliers(df[c]) for c in ["close","volume"] if c in df.columns and df[c].dtype.kind in "fc")
         outlier_pct = 100.0 * outlier_count / max(n, 1)
