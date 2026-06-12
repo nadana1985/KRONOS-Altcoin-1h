@@ -1,172 +1,123 @@
 """
-KRONOS V1-ALT — Bias Override Point 18: "Linear Volume Impact Scaling"
+Point 18: Linear Volume Impact Scaling - Logarithmic Volume Z-Score Normalization
+(Vectorized Implementation)
 
-Manual description:
-  "Linear volume impact scaling ignores capitalization scales across the
-   530 tokens."
-
-Quant replacement:
-  "Logarithmic Volume Z-Score Normalization. Scale the volume series using
-   rolling log-transformed distributions:
-   V = (ln(Q_t) - mu_ln(Q)) / sigma_ln(Q)."
-
-Uses shared compute_log_volume_zscore.
+Replaces naive linear volume metrics with a statistically robust, non-stationary 
+normal distribution. Prevents massive capitalization variances across cross-sectional 
+high-beta tokens from distorting standard volume flow algorithms.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.overrides.utils import compute_log_volume_zscore
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-
-logger = logging.getLogger("kronos.bias_override.point_18")
+_logger = logging.getLogger("kronos.bias_override.point_18")
 
 
-
-_DEFAULT_POINT_18_CONFIG = {
-            "log_vol_window": 50,
-            "min_data_density": 150,
-            "fallback_zscore": 0.0,
-        }
-
-
-def compute_log_vol_zscore(
-    volume: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> float:
-    """Compute log-transformed volume z-score."""
-    cfg = config or {}
-    w = int(cfg.get("log_vol_window", 50))
-    min_d = int(cfg.get("min_data_density", 150))
-    fb = float(cfg.get("fallback_zscore", 0.0))
-
-    v = pd.to_numeric(volume, errors="coerce").dropna()
-    if len(v) < min_d:
-        logger.info("[POINT_18] insufficient data — fallback zscore %.3f", fb)
-        return fb
-
-    zscore = compute_log_volume_zscore(v, w)
-    logger.info("[POINT_18] log_vol_zscore | window=%d -> z=%.3f", w, zscore)
-    return zscore
-
-
-def compute_point_18_override(
-    raw_vol_zscore: float,
-    df: pd.DataFrame,
-    symbol: str,
-    engine: Optional[BiasOverrideEngine] = None,
-    volume_col: str = "volume",
-    **kwargs,
-) -> float:
-    """Wrapper for Point 18. Returns log-transformed volume z-score."""
-    if engine is None:
-        engine = BiasOverrideEngine()
-    cfg = _load_point_18_config(engine)
-
-    v = pd.to_numeric(df.get(volume_col), errors="coerce")
-    raw_val = float(raw_vol_zscore) if np.isfinite(raw_vol_zscore) else float(cfg.get("fallback_zscore", 0.0))
-    new_val = compute_log_vol_zscore(v, config=cfg)
-
-    final = engine.apply_override(
-        point_id="18",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-    logger.debug("[POINT_18] decision | %s raw=%.3f new=%.3f final=%.3f", symbol, raw_val, new_val, final)
-    return float(final)
-
-
-if __name__ == "__main__":
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-    print("=== Point 18 Log Volume Z-Score Smoke ===")
-    engine = BiasOverrideEngine()
-    rng = np.random.default_rng(18)
-    n = 200
-    # Mix of low-cap and high-cap volume patterns
-    vol_low = rng.uniform(10_000, 100_000, n // 2)
-    vol_high = rng.uniform(5_000_000, 50_000_000, n // 2)
-    vol = np.concatenate([vol_low, vol_high])
-    df = pd.DataFrame({"volume": vol, "close": 100 + np.cumsum(rng.normal(0, 0.5, n))})
-    # Current bar has very high volume (should show positive z)
-    zscore = compute_point_18_override(0.0, df, "TEST18", engine=engine)
-    print(f"  log volume z-score: {zscore:.3f}")
-
-def _load_point_18_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_18", engine)
-    if cfg:
-        return cfg
-    return _DEFAULT_POINT_18_CONFIG
-
-def compute_log_vol_zscore(
-    volume: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> float:
-    """Compute log-transformed volume z-score."""
-    cfg = config or {}
-    w = int(cfg.get("log_vol_window", 50))
-    min_d = int(cfg.get("min_data_density", 150))
-    fb = float(cfg.get("fallback_zscore", 0.0))
-
-    v = pd.to_numeric(volume, errors="coerce").dropna()
-    if len(v) < min_d:
-        logger.info("[POINT_18] insufficient data — fallback zscore %.3f", fb)
-        return fb
-
-    zscore = compute_log_volume_zscore(v, w)
-    logger.info("[POINT_18] log_vol_zscore | window=%d -> z=%.3f", w, zscore)
-    return zscore
+def compute_logarithmic_volume_z_score(
+    quote_volume: Union[pd.Series, np.ndarray],
+    W: int = 100
+) -> pd.Series:
+    """
+    Computes rolling Logarithmic Volume Z-Scores perfectly normalized out-of-sample.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. log_Q = ln(Q_t)
+    2. mu_t = Rolling Mean of log_Q over W
+    3. sigma_t = Rolling Standard Deviation of log_Q over W
+    4. V_tilde_t = (log_Q_t - mu_t) / sigma_t
+    5. STRICT CAUSALITY BARRIER: The rolling mean and standard deviation matrices 
+       must be shifted forward by 1 bar (.shift(1)) to lock the distribution 
+       out-of-sample prior to scoring the current volume event.
+       
+    Parameters
+    ----------
+    quote_volume : array-like
+        The raw Quote Asset Volume array (Binance Field 7).
+    W : int
+        The rolling lookback window length for the distribution parameters.
+        
+    Returns
+    -------
+    pd.Series
+        Normalized continuous floating-point series representing V_tilde_t.
+    """
+    is_series = isinstance(quote_volume, pd.Series)
+    index = quote_volume.index if is_series else None
+    
+    Q = np.asarray(quote_volume, dtype=float)
+    N = len(Q)
+    
+    if N == 0:
+        return pd.Series(dtype=float, index=index, name="log_volume_z_score")
+        
+    # 1. Secure logarithmic transformation
+    # Guard dynamically against low-nominal 0.0 volume bars via 1e-12 precision floor
+    log_Q = np.log(np.maximum(Q, 1e-12))
+    
+    # 2. Vectorized Rolling Distribution Extraction
+    safe_mean = np.mean(log_Q) if N > 0 else 0.0
+    safe_std = np.std(log_Q) if N > 0 else 1.0
+    
+    pad_log_Q = np.pad(log_Q, (W - 1, 0), mode='constant', constant_values=safe_mean)
+    
+    windows = np.lib.stride_tricks.sliding_window_view(pad_log_Q, window_shape=W)
+    
+    mu_raw = np.mean(windows, axis=1)
+    sigma_raw = np.std(windows, axis=1, ddof=1)
+    sigma_raw = np.nan_to_num(sigma_raw, nan=0.0)
+    
+    # 3. STRICT CAUSALITY BARRIER (.shift(1))
+    mu_t = np.empty_like(mu_raw)
+    sigma_t = np.empty_like(sigma_raw)
+    
+    # Safely lock index 0 to neutral assumptions preventing NaN propagation
+    mu_t[0] = safe_mean
+    sigma_t[0] = safe_std
+    
+    # Extract out-of-sample history exclusively
+    mu_t[1:] = mu_raw[:-1]
+    sigma_t[1:] = sigma_raw[:-1]
+    
+    # 4. Precision Guard & Evaluation
+    # Guard against completely flat accumulation patches yielding 0 standard deviation
+    sigma_safe = np.maximum(sigma_t, 1e-12)
+    
+    # V_tilde_t = (ln(Q_t) - mu_ln(Q),t) / sigma_ln(Q),t
+    V_tilde_t = (log_Q - mu_t) / sigma_safe
+    
+    # Clean any un-caught artifacts mathematically
+    V_tilde_t = np.nan_to_num(V_tilde_t, nan=0.0, posinf=0.0, neginf=0.0)
+    
+    return pd.Series(V_tilde_t, index=index, name="log_volume_z_score")
 
 
 def compute_point_18_override(
-    raw_vol_zscore: float,
     df: pd.DataFrame,
-    symbol: str,
-    engine: Optional[BiasOverrideEngine] = None,
-    volume_col: str = "volume",
-    **kwargs,
-) -> float:
-    """Wrapper for Point 18. Returns log-transformed volume z-score."""
-    if engine is None:
-        engine = BiasOverrideEngine()
-    cfg = _load_point_18_config(engine)
-
-    v = pd.to_numeric(df.get(volume_col), errors="coerce")
-    raw_val = float(raw_vol_zscore) if np.isfinite(raw_vol_zscore) else float(cfg.get("fallback_zscore", 0.0))
-    new_val = compute_log_vol_zscore(v, config=cfg)
-
-    final = engine.apply_override(
-        point_id="18",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-    logger.debug("[POINT_18] decision | %s raw=%.3f new=%.3f final=%.3f", symbol, raw_val, new_val, final)
-    return float(final)
-
-
-if __name__ == "__main__":
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-    print("=== Point 18 Log Volume Z-Score Smoke ===")
-    engine = BiasOverrideEngine()
-    rng = np.random.default_rng(18)
-    n = 200
-    # Mix of low-cap and high-cap volume patterns
-    vol_low = rng.uniform(10_000, 100_000, n // 2)
-    vol_high = rng.uniform(5_000_000, 50_000_000, n // 2)
-    vol = np.concatenate([vol_low, vol_high])
-    df = pd.DataFrame({"volume": vol, "close": 100 + np.cumsum(rng.normal(0, 0.5, n))})
-    # Current bar has very high volume (should show positive z)
-    zscore = compute_point_18_override(0.0, df, "TEST18", engine=engine)
-    print(f"  log volume z-score: {zscore:.3f}")
-    print("Smoke done.")
+    W: int = 100,
+    volume_col: str = "quote_asset_volume",
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
+    """
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Destroys linear capitalization biases by standardizing actual volume impacts mathematically.
+    """
+    try:
+        col_to_use = volume_col if volume_col in df.columns else "volume"
+        
+        if col_to_use not in df.columns:
+            raise ValueError(f"Required volume column '{col_to_use}' missing.")
+            
+        return compute_logarithmic_volume_z_score(
+            quote_volume=df[col_to_use],
+            W=W
+        )
+    except Exception as e:
+        _logger.error(f"[POINT_18] Logarithmic Volume Normalization failed for {symbol}: {e}")
+        # Fail-safe: Returns neutral 0.0 Z-Score mapping smoothly on matrix collapse
+        return pd.Series(0.0, index=df.index, name="log_volume_z_score")

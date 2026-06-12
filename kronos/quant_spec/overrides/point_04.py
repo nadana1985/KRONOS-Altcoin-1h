@@ -1,143 +1,123 @@
 """
-KRONOS V1-ALT — Bias Override Point 04: "Manual Linear Multiplier Bias"
+Point 04: Manual Linear Multiplier Bias - Strict Rolling Percentile Rank Transform
+(Vectorized Implementation)
 
-Manual description:
-  "Using arbitrary multipliers assumes linear pricing relationships that do not hold across regimes or assets."
-
-Quant replacement:
-  "Rolling Percentile Rank Transform. Transform multipliers through a rolling percentile rank transform:
-   Rank(X_t) = sum I[X_tau <= X_t] / W for tau=t-W."
-
-This replaces raw multipliers (e.g. 4.2, 1.5) with their empirical rank within recent history.
-The rank is bounded and regime-adaptive.
-
-Reusable helper: kronos.quant_spec.overrides.utils.rolling_percentile_rank
-
-Follows the exact engine-routed pattern of Points 01/02.
+Eliminates arbitrary manual linear multipliers. Maps feature signals into a dynamic
+non-parametric percentile space bound in [0.0, 1.0], using a strict causality barrier.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.overrides.utils import rolling_percentile_rank
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-
-logger = logging.getLogger("kronos.bias_override.point_04")
+_logger = logging.getLogger("kronos.bias_override.point_04")
 
 
-
-_DEFAULT_POINT_04_CONFIG = {
-            "rank_window": 100,
-            "min_data_density": 100,
-            "fallback_rank": 0.5,
-            "clip_min": 0.05,
-            "clip_max": 0.95,
-        }
-
-def _load_point_04_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_04", engine)
-    if cfg:
-        return cfg
-    return _DEFAULT_POINT_04_CONFIG
-
-def compute_rolling_percentile_rank_multiplier(
-    raw_multiplier: float,
-    history_proxy: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> float:
+def compute_strict_rolling_percentile_rank(
+    X: Union[pd.Series, np.ndarray],
+    W: int = 100,
+) -> Union[pd.Series, np.ndarray]:
     """
-    Pure quant replacement for Point 04.
-
-    Returns the rank-transformed version of the multiplier (in [clip_min, clip_max]).
+    Computes a strictly causal rolling percentile rank.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. Rank(X_t) = (1 / W) * sum( I[X_tau <= X_t] ) for tau = t-W to t-1
+    2. STRICT CAUSALITY BARRIER: The current observation 'X_t' is evaluated strictly 
+       against the closed historical slice [X_t-W, ..., X_t-1]. It is absolutely 
+       prevented from being included in its own reference pool.
+    3. BOUNDS: Output is explicitly a floating-point value bounded uniformly in [0.0, 1.0].
+    4. WARM-UP PERIOD: For 't' < W, the rank defaults to 0.5 to prevent NaNs.
+    
+    Parameters
+    ----------
+    X : pd.Series or np.ndarray
+        The input array or series representing the feature or multiplier proxy to be ranked.
+    W : int
+        The historical lookback window length.
+        
+    Returns
+    -------
+    pd.Series or np.ndarray
+        An array/series of strictly causal rank values bounded in [0.0, 1.0].
     """
-    cfg = config or {}
-    window = int(cfg.get("rank_window", 100))
-    min_dens = int(cfg.get("min_data_density", 100))
-    fallback = float(cfg.get("fallback_rank", 0.5))
-    cmin = float(cfg.get("clip_min", 0.05))
-    cmax = float(cfg.get("clip_max", 0.95))
-
-    if len(history_proxy.dropna()) < min_dens:
-        logger.info("[POINT_04] insufficient history for rank — using fallback %.2f", fallback)
-        return float(np.clip(fallback * raw_multiplier, cmin * raw_multiplier, cmax * raw_multiplier))  # conservative scaling
-
-    rank = rolling_percentile_rank(history_proxy, window)
-    transformed = rank * raw_multiplier   # scale the multiplier by its rank in distribution
-    return float(np.clip(transformed, cmin * raw_multiplier, cmax * raw_multiplier))
+    is_series = isinstance(X, pd.Series)
+    X_arr = np.asarray(X, dtype=float)
+    
+    N = len(X_arr)
+    
+    # Initialize output array with the neutral 0.5 baseline for warm-up index 't' < W
+    R = np.full(N, 0.5, dtype=float)
+    
+    if N > W:
+        # 1. Create vectorized historical windows using stride tricks
+        # sliding_window_view(X_arr, W) returns shape (N - W + 1, W)
+        windows = np.lib.stride_tricks.sliding_window_view(X_arr, window_shape=W)
+        
+        # 2. Enforce Strict Causality Barrier
+        # X_hist spans indices [t-W : t-1].
+        # windows[0] covers [0 : W-1], which is the exact history for predicting at t=W.
+        # windows[:-1] correctly maps to t from W to N-1.
+        X_hist = windows[:-1]  # shape: (N - W, W)
+        
+        # Current observation X_t at timestamp 't' (from W to N-1)
+        X_t = X_arr[W:]  # shape: (N - W,)
+        
+        # Expand X_t for broadcasting against X_hist
+        X_t_expanded = X_t[:, np.newaxis]  # shape: (N - W, 1)
+        
+        # 3. Compute the rank using boolean indicators
+        # Ignore NaNs in historical comparisons
+        # I[X_tau <= X_t]
+        indicators = (X_hist <= X_t_expanded)
+        
+        # Handle cases where historical data contains NaNs
+        valid_hist = ~np.isnan(X_hist)
+        indicators = indicators & valid_hist
+        valid_counts = valid_hist.sum(axis=1)
+        
+        # Fallback to 1 if all are NaN to prevent div by zero
+        valid_counts = np.maximum(valid_counts, 1)
+        
+        # Rank(X_t) = sum / valid_W
+        rank_t = indicators.sum(axis=1) / valid_counts
+        
+        # If X_t itself is NaN, rank defaults to 0.5
+        rank_t = np.where(np.isnan(X_t), 0.5, rank_t)
+        
+        R[W:] = rank_t
+        
+    # 4. Strict bounding to [0.0, 1.0] to guarantee uniform constraint
+    R = np.clip(R, 0.0, 1.0)
+        
+    if is_series:
+        return pd.Series(R, index=X.index, name="rank_transform")
+        
+    return R
 
 
 def compute_point_04_override(
-    raw_multiplier: float,
     df: pd.DataFrame,
-    symbol: str,
-    history_proxy: Optional[pd.Series] = None,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> float:
+    target_column: str,
+    W: int = 100,
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
     """
-    Full wrapper for Point 04.
-
-    Computes raw (original multiplier) and new (rank-transformed).
-    Routes decision through BiasOverrideEngine.
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Processes the entire DataFrame sequentially via stride tricks without procedural loops.
+    Strips away all arbitrary linear scaling multipliers and replaces them with 
+    the dynamic, causality-safe empirical rank transformation.
     """
-    if engine is None:
-        engine = BiasOverrideEngine()
-
-    cfg = _load_point_04_config(engine)
-
-    # Build proxy history if not supplied: use recent |log returns| * volume as "strength" distribution
-    if history_proxy is None or len(history_proxy) < 10:
-        close = pd.to_numeric(df.get("close", pd.Series(dtype=float)), errors="coerce")
-        vol = pd.to_numeric(df.get("volume", pd.Series(1.0, index=df.index)), errors="coerce")
-        logret = (close / close.shift(1) - 1.0).abs()
-        history_proxy = (logret * vol).dropna()
-
-    raw_val = float(raw_multiplier)
-    new_val = compute_rolling_percentile_rank_multiplier(raw_val, history_proxy, config=cfg)
-
-    final = engine.apply_override(
-        point_id="04",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-
-    logger.debug(
-        "[POINT_04] engine_decision | symbol=%s | raw_mult=%.3f | new_mult=%.3f | final=%.3f",
-        symbol, raw_val, new_val, final
-    )
-    return float(final)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import pandas as pd
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-
-    print("=== Point 04 (Manual Linear Multiplier Bias) Smoke ===")
-    engine = BiasOverrideEngine()
-    cfg = _load_point_04_config(engine)
-    print("Config:", {k: cfg[k] for k in ["rank_window", "fallback_rank"]})
-
-    np.random.seed(42)
-    n = 200
-    proxy = pd.Series(np.random.lognormal(0, 0.8, n))  # proxy for past multiplier applications / strength
-
-    for raw in [4.2, 1.5, 0.8, 3.0]:
-        new = compute_rolling_percentile_rank_multiplier(raw, proxy, config=cfg)
-        print(f"raw_mult={raw:.2f} -> rank_transformed={new:.3f}")
-
-    # Engine path (raw until status flipped)
-    dummy_df = pd.DataFrame({"close": np.linspace(100, 101, 50), "volume": np.random.uniform(1e6, 3e6, 50)})
-    final = compute_point_04_override(4.2, dummy_df, "TEST04", engine=engine)
-    print(f"Via engine (raw expected): {final:.3f}")
-
-    print("Point 04 smoke complete.")
+    try:
+        if target_column not in df.columns:
+            raise ValueError(f"Target feature column '{target_column}' missing from DataFrame.")
+            
+        return compute_strict_rolling_percentile_rank(df[target_column], W=W)
+    except Exception as e:
+        _logger.error(f"[POINT_04] Rolling Rank Transform failed for {symbol}: {e}")
+        # Fail-safe: neutral 0.5 propagation
+        return pd.Series(0.5, index=df.index, name="rank_transform")

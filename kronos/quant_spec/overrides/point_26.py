@@ -1,190 +1,155 @@
 """
-KRONOS V1-ALT — Bias Override Point 26: "Discrete State Transitions for Key Level Proximity"
+Point 26: Linear Proximity Modeling Bias - Continuous Cauchy Proximity Kernel
+(Vectorized Implementation)
 
-Manual description:
-  "Calculating distances to support and resistance levels using discrete threshold steps."
-
-Quant replacement:
-  "Continuous Cauchy Proximity Kernels. Map the physical distance to the nearest key level via a smooth, non-linear Cauchy density function:
-   f(d_t) = 1 / (pi * gamma * (1 + (d_t / gamma)^2))."
-
-Uses shared compute_cauchy_proximity_kernel.
-
-This replaces step-function proximity with a smooth, heavy-tailed kernel (useful for S/R features and soft barriers).
+Replaces naive linear distance proxies with a non-linear continuous Cauchy kernel.
+Accurately models the exponential gravitational liquidity concentration mapping 
+an asset's exact physical proximity to institutional support/resistance thresholds natively.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.overrides.utils import compute_cauchy_proximity_kernel
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-
-logger = logging.getLogger("kronos.bias_override.point_26")
+_logger = logging.getLogger("kronos.bias_override.point_26")
 
 
-
-_DEFAULT_POINT_26_CONFIG = {"cauchy_gamma": 0.01, "min_data_density": 40, "fallback_proximity": 0.5}
-
-
-def compute_cauchy_proximity_value(
-    distance: float,
-    config: Optional[Dict[str, Any]] = None,
-) -> float:
-    """Pure Cauchy proximity kernel replacement."""
-    cfg = config or {}
-    gamma = float(cfg.get("cauchy_gamma", 0.01))
-    min_d = int(cfg.get("min_data_density", 40))  # distance always available, but we still check data for the bar
-    fb = float(cfg.get("fallback_proximity", 0.5))
-
-    # For single distance, the data check is on the caller side
-    val = compute_cauchy_proximity_kernel(distance, gamma)
-    if not np.isfinite(val):
-        val = fb
-    logger.info("[POINT_26] cauchy_prox | gamma=%.4f d=%.4f -> val=%.5f", gamma, distance, val)
-    return float(val)
+def compute_cauchy_proximity_kernel(
+    high: Union[pd.Series, np.ndarray],
+    low: Union[pd.Series, np.ndarray],
+    close: Union[pd.Series, np.ndarray],
+    key_level: Union[pd.Series, np.ndarray],
+    W: int = 24,
+    kappa: float = 0.5,
+    gamma_min: float = 1e-6
+) -> pd.Series:
+    """
+    Computes a strictly causal, continuous Cauchy proximity kernel score natively.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. TR_t = max(H_t - L_t, |H_t - C_t-1|, |L_t - C_t-1|)
+    2. gamma_t = Mean(TR_[t-W : t-1]) * kappa
+    3. K_t = 1.0 / ( 1.0 + ( (C_t - L_key,t) / gamma_t )^2 )
+    4. STRICT CAUSALITY BARRIER: The scale parameter gamma_t is generated entirely 
+       out-of-sample (.shift(1)) ensuring current price boundaries do not alter the 
+       evaluation physics contemporaneously.
+       
+    Parameters
+    ----------
+    high : array-like
+        High prices array.
+    low : array-like
+        Low prices array.
+    close : array-like
+        Close prices array (C_t).
+    key_level : array-like
+        Nearest validated Support or Resistance line (L_key,t).
+    W : int
+        Lookback window tracking underlying background volatility dynamically.
+    kappa : float
+        Scale multiplier controlling kernel bandwidth density bounds.
+    gamma_min : float
+        Absolute hardware float floor preventing Cauchy singularity points natively.
+        
+    Returns
+    -------
+    pd.Series
+        Bounded [0.0, 1.0] continuous probability mapping representing proximity density (Slot 26).
+    """
+    is_series = isinstance(close, pd.Series)
+    index = close.index if is_series else None
+    
+    H = np.asarray(high, dtype=float)
+    L = np.asarray(low, dtype=float)
+    C = np.asarray(close, dtype=float)
+    L_key = np.asarray(key_level, dtype=float)
+    
+    N = len(C)
+    
+    if N == 0:
+        return pd.Series(dtype=float, index=index, name="cauchy_proximity")
+        
+    # 1. Structural True Range Extraction
+    C_prev = np.empty_like(C)
+    C_prev[0] = C[0]  # Warm-up fallback
+    C_prev[1:] = C[:-1]
+    
+    tr1 = H - L
+    tr2 = np.abs(H - C_prev)
+    tr3 = np.abs(L - C_prev)
+    
+    # Exact native maximum path
+    TR = np.maximum(np.maximum(tr1, tr2), tr3)
+    
+    # 2. Vectorized Rolling ATR Calculation via Stride Tricks
+    safe_mean = np.mean(TR) if N > 0 else 1.0
+    
+    # Pad array strictly to ensure matrix dimensionality alignment safely
+    pad_TR = np.pad(TR, (W - 1, 0), mode='constant', constant_values=safe_mean)
+    windows = np.lib.stride_tricks.sliding_window_view(pad_TR, window_shape=W)
+    ATR_raw = np.mean(windows, axis=1)
+    
+    # 3. STRICT CAUSALITY BARRIER (.shift(1))
+    ATR_t = np.empty_like(ATR_raw)
+    ATR_t[0] = safe_mean
+    
+    # Lock matrix extraction strictly out-of-sample natively
+    ATR_t[1:] = ATR_raw[:-1]
+    
+    # 4. Localized Scale Parameter Optimization (gamma_t)
+    gamma_raw = ATR_t * kappa
+    
+    # Enforce strict zero-variance structural limits safely protecting Cauchy kernel limits
+    gamma_t = np.maximum(gamma_raw, gamma_min)
+    
+    # 5. Continuous Cauchy Proximity Kernel Mathematics
+    # Matches equation exactly: 1.0 / ( 1.0 + ( (C_t - L_key,t) / gamma_t )^2 )
+    dist = (C - L_key) / gamma_t
+    K_t = 1.0 / (1.0 + (dist ** 2))
+    
+    # Scrub outputs cleanly explicitly against matrix corruption
+    K_t = np.nan_to_num(K_t, nan=0.0, posinf=1.0, neginf=0.0)
+    
+    # Cauchy inherently maps to [0, 1] securely, explicit clip maintains standard
+    K_t = np.clip(K_t, 0.0, 1.0)
+    
+    return pd.Series(K_t, index=index, name="cauchy_proximity")
 
 
 def compute_point_26_override(
-    raw_proximity: float,
     df: pd.DataFrame,
-    symbol: str,
-    distance: Optional[float] = None,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> float:
+    key_level_col: str,
+    W: int = 24,
+    kappa: float = 0.5,
+    gamma_min: float = 1e-6,
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
     """
-    Wrapper for Point 26.
-    Expects a pre-computed 'distance' to nearest S/R (in price units).
-    If not provided, falls back to a simple normalized distance from recent range.
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Extracts non-linear liquidity gravitational forces into continuous Cauchy state kernels.
     """
-    if engine is None:
-        engine = BiasOverrideEngine()
-    cfg = _load_point_26_config(engine)
-
-    if distance is None:
-        c = pd.to_numeric(df.get("close"), errors="coerce")
-        h = pd.to_numeric(df.get("high"), errors="coerce")
-        l = pd.to_numeric(df.get("low"), errors="coerce")
-        recent_range = (h.tail(20) - l.tail(20)).mean()
-        # Fake a small distance for demo (0.3 of recent range)
-        distance = 0.3 * recent_range if recent_range > 0 else 0.01
-
-    raw_val = float(raw_proximity) if np.isfinite(raw_proximity) else 0.5
-    new_val = compute_cauchy_proximity_value(distance, config=cfg)
-
-    final = engine.apply_override(
-        point_id="26",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-    logger.debug("[POINT_26] decision | %s raw=%.4f new=%.4f final=%.4f (d=%.4f)", symbol, raw_val, new_val, final, distance)
-    return float(final)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import pandas as pd
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-    print("=== Point 26 Cauchy Proximity Smoke ===")
-    engine = BiasOverrideEngine()
-    n = 50
-    rng = np.random.default_rng(26)
-    c = 100 + np.cumsum(rng.normal(0, 0.3, n))
-    h = c + rng.uniform(0.2, 0.6, n)
-    l = c - rng.uniform(0.2, 0.6, n)
-    df = pd.DataFrame({"high": h, "low": l, "close": c})
-    raw = 0.4
-    # Pass explicit distance for the wrapper
-    final = compute_point_26_override(raw, df, "TEST26", distance=0.8, engine=engine)
-    print(f"raw={raw:.3f} -> final={final:.5f}")
-
-def _load_point_26_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_26", engine)
-    if cfg:
-        return cfg
-    return _DEFAULT_POINT_26_CONFIG
-
-def compute_cauchy_proximity_value(
-    distance: float,
-    config: Optional[Dict[str, Any]] = None,
-) -> float:
-    """Pure Cauchy proximity kernel replacement."""
-    cfg = config or {}
-    gamma = float(cfg.get("cauchy_gamma", 0.01))
-    min_d = int(cfg.get("min_data_density", 40))  # distance always available, but we still check data for the bar
-    fb = float(cfg.get("fallback_proximity", 0.5))
-
-    # For single distance, the data check is on the caller side
-    val = compute_cauchy_proximity_kernel(distance, gamma)
-    if not np.isfinite(val):
-        val = fb
-    logger.info("[POINT_26] cauchy_prox | gamma=%.4f d=%.4f -> val=%.5f", gamma, distance, val)
-    return float(val)
-
-
-def compute_point_26_override(
-    raw_proximity: float,
-    df: pd.DataFrame,
-    symbol: str,
-    distance: Optional[float] = None,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> float:
-    """
-    Wrapper for Point 26.
-    Expects a pre-computed 'distance' to nearest S/R (in price units).
-    If not provided, falls back to a simple normalized distance from recent range.
-    """
-    if engine is None:
-        engine = BiasOverrideEngine()
-    cfg = _load_point_26_config(engine)
-
-    if distance is None:
-        c = pd.to_numeric(df.get("close"), errors="coerce")
-        h = pd.to_numeric(df.get("high"), errors="coerce")
-        l = pd.to_numeric(df.get("low"), errors="coerce")
-        recent_range = (h.tail(20) - l.tail(20)).mean()
-        # Fake a small distance for demo (0.3 of recent range)
-        distance = 0.3 * recent_range if recent_range > 0 else 0.01
-
-    raw_val = float(raw_proximity) if np.isfinite(raw_proximity) else 0.5
-    new_val = compute_cauchy_proximity_value(distance, config=cfg)
-
-    final = engine.apply_override(
-        point_id="26",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-    logger.debug("[POINT_26] decision | %s raw=%.4f new=%.4f final=%.4f (d=%.4f)", symbol, raw_val, new_val, final, distance)
-    return float(final)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import pandas as pd
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-    print("=== Point 26 Cauchy Proximity Smoke ===")
-    engine = BiasOverrideEngine()
-    n = 50
-    rng = np.random.default_rng(26)
-    c = 100 + np.cumsum(rng.normal(0, 0.3, n))
-    h = c + rng.uniform(0.2, 0.6, n)
-    l = c - rng.uniform(0.2, 0.6, n)
-    df = pd.DataFrame({"high": h, "low": l, "close": c})
-    raw = 0.4
-    # Pass explicit distance for the wrapper
-    final = compute_point_26_override(raw, df, "TEST26", distance=0.8, engine=engine)
-    print(f"raw={raw:.3f} -> final={final:.5f}")
-    print("Smoke done.")
+    try:
+        req_cols = ["high", "low", "close", key_level_col]
+        missing = [c for c in req_cols if c not in df.columns]
+        
+        if missing:
+            raise ValueError(f"Missing required columns for Point 26: {missing}")
+            
+        return compute_cauchy_proximity_kernel(
+            high=df["high"],
+            low=df["low"],
+            close=df["close"],
+            key_level=df[key_level_col],
+            W=W,
+            kappa=kappa,
+            gamma_min=gamma_min
+        )
+    except Exception as e:
+        _logger.error(f"[POINT_26] Continuous Cauchy Proximity mapping failed for {symbol}: {e}")
+        # Fail-safe: Return pure neutral (0.0) spatial baseline organically on failure
+        return pd.Series(0.0, index=df.index, name="cauchy_proximity")

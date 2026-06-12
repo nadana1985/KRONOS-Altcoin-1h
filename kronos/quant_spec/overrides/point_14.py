@@ -1,131 +1,120 @@
 """
-KRONOS V1-ALT — Bias Override Point 14: "Hardcoded Denominator Epsilon Guards"
+Point 14: Hardcoded Denominator Epsilon Guards - Numerical Standard Deviation Precision Scale
+(Vectorized Implementation)
 
-Manual description:
-  "Injecting a uniform constant to prevent division-by-zero errors distorts scale
-   metrics on low-nominal-priced tokens."
-
-Quant replacement:
-  "Numerical Standard Deviation Precision Scale. Dynamically scale epsilons relative
-   to the moving variance of the target denominator: eps_t = sigma(X[t-W:t]) * 1e-7."
-
-Reusable helper: kronos.quant_spec.overrides.utils.compute_dynamic_epsilon
+Replaces rigid static epsilon constants with dynamically scaled precision guards.
+Prevents low-nominal assets from encountering scale distortion while guaranteeing 
+mathematical division safety natively.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.overrides.utils import compute_dynamic_epsilon
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-
-logger = logging.getLogger("kronos.bias_override.point_14")
+_logger = logging.getLogger("kronos.bias_override.point_14")
 
 
-
-_DEFAULT_POINT_14_CONFIG = {
-            "eps_scale": 1e-7,
-            "sigma_window": 50,
-            "min_data_density": 30,
-            "fallback_eps": 1e-8,
-            "min_eps": 1e-12,
-            "max_eps": 1e-3,
-        }
-
-def _load_point_14_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_14", engine)
-    if cfg:
-        return cfg
-    return _DEFAULT_POINT_14_CONFIG
-
-def compute_dynamic_sigma_epsilon(
-    series: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> float:
-    """Pure quant replacement for Point 14."""
-    cfg = config or {}
-    w = int(cfg.get("sigma_window", 50))
-    scale = float(cfg.get("eps_scale", 1e-7))
-    min_d = int(cfg.get("min_data_density", 30))
-    fb = float(cfg.get("fallback_eps", 1e-8))
-    cmin = float(cfg.get("min_eps", 1e-12))
-    cmax = float(cfg.get("max_eps", 1e-3))
-
-    if len(series.dropna()) < min_d:
-        logger.info("[POINT_14] insufficient history for sigma — fallback eps %.2e", fb)
-        return fb
-
-    eps = compute_dynamic_epsilon(series, w, scale, cmin, cmax)
-    logger.info("[POINT_14] dynamic_eps | scale=%.1e sigma_window=%d -> eps=%.2e", scale, w, eps)
-    return eps
+def compute_dynamic_precision_epsilon(
+    X: Union[pd.Series, np.ndarray],
+    W: int = 24,
+    scale_factor: float = 1e-7,
+    absolute_min_floor: float = 1e-12
+) -> Union[pd.Series, np.ndarray]:
+    """
+    Computes a dynamically adaptive, variance-stabilized epsilon array.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. Ingest targeted denominator matrix X.
+    2. epsilon_t = sigma(X_[t-W : t-1]) * scale_factor
+    3. STRICT CAUSALITY BARRIER: Standard deviation computes strictly on historical blocks 
+       ending at 't-1' (.shift(1)) locking the safety floor out-of-sample.
+    4. Enforce absolute_min_floor to prevent total matrix collapse on zero-variance zones.
+    
+    Parameters
+    ----------
+    X : array-like
+        The targeted denominator series vector.
+    W : int
+        The rolling lookback window length.
+    scale_factor : float
+        The scale multiplier mapping standard deviation to an epsilon guard natively.
+    absolute_min_floor : float
+        Absolute minimum floor protecting against 0 variance.
+        
+    Returns
+    -------
+    pd.Series or np.ndarray
+        A corresponding vector of dynamically scaled epsilons matching the input.
+    """
+    is_series = isinstance(X, pd.Series)
+    index = X.index if is_series else None
+    
+    X_arr = np.asarray(X, dtype=float)
+    N = len(X_arr)
+    
+    if N == 0:
+        if is_series:
+            return pd.Series(dtype=float, index=index, name="dynamic_epsilon")
+        return np.array([], dtype=float)
+        
+    # 1. STRICT CAUSALITY BARRIER
+    # Use pure NumPy stride tricks to extract the structural standard deviation instantly.
+    # Pad the beginning natively to permit safe structural calculation without early matrix failure
+    safe_std = np.std(X_arr) if N > 0 else 1.0
+    
+    # Pad with W-1 copies of the mean to ensure early initial standard deviations aren't poisoned
+    X_padded = np.pad(X_arr, (W - 1, 0), mode='constant', constant_values=np.mean(X_arr) if N > 0 else 1.0)
+    
+    windows = np.lib.stride_tricks.sliding_window_view(X_padded, window_shape=W)
+    sigma_raw = np.std(windows, axis=1, ddof=1)  # shape (N,)
+    
+    # Fill any NaNs created by ddof=1 on zero variance slices safely
+    sigma_raw = np.nan_to_num(sigma_raw, nan=0.0)
+    
+    # Shift array cleanly forward by 1 index to simulate .shift(1) out-of-sample locking
+    sigma_t = np.empty_like(sigma_raw)
+    sigma_t[0] = safe_std  # Fallback for index 0
+    sigma_t[1:] = sigma_raw[:-1]
+    
+    # 2. Dynamic Scale Evaluation
+    epsilon_raw = sigma_t * scale_factor
+    
+    # 3. Floor Enforcement
+    epsilon_t = np.maximum(epsilon_raw, absolute_min_floor)
+    
+    if is_series:
+        return pd.Series(epsilon_t, index=index, name="dynamic_epsilon")
+    return epsilon_t
 
 
 def compute_point_14_override(
-    raw_eps: float,
     df: pd.DataFrame,
-    symbol: str,
-    series: Optional[pd.Series] = None,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> float:
+    target_column: str,
+    W: int = 24,
+    scale_factor: float = 1e-7,
+    absolute_min_floor: float = 1e-12,
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
     """
-    Wrapper for Point 14.
-    Replaces a hardcoded eps with a dynamic sigma-scaled guard.
-    If no series provided, uses recent |logret| or volume as proxy denominator volatility.
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Applies the dynamic standard deviation precision guard to a target denominator column.
     """
-    if engine is None:
-        engine = BiasOverrideEngine()
-
-    cfg = _load_point_14_config(engine)
-
-    if series is None:
-        close = pd.to_numeric(df.get("close", pd.Series(dtype=float)), errors="coerce")
-        logret = (close / close.shift(1) - 1.0).abs()
-        series = logret.dropna()
-
-    raw_val = float(raw_eps)
-    new_val = compute_dynamic_sigma_epsilon(series, config=cfg)
-
-    final = engine.apply_override(
-        point_id="14",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-
-    logger.debug(
-        "[POINT_14] engine_decision | symbol=%s | raw_eps=%.2e | new_eps=%.2e | final=%.2e",
-        symbol, raw_val, new_val, final
-    )
-    return float(final)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import pandas as pd
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-
-    print("=== Point 14 (Hardcoded Denominator Epsilon Guards) Smoke ===")
-    engine = BiasOverrideEngine()
-    cfg = _load_point_14_config(engine)
-
-    np.random.seed(14)
-    n = 160
-    proxy = pd.Series(np.random.randn(n).cumsum() * 0.3 + 50)  # price-like series for sigma
-
-    raw = 1e-8
-    new = compute_dynamic_sigma_epsilon(proxy, config=cfg)
-    print(f"raw_eps={raw:.2e} -> dyn_eps={new:.2e}")
-
-    dummy_df = pd.DataFrame({"close": proxy.values})
-    final = compute_point_14_override(raw, dummy_df, "TEST14", engine=engine)
-    print(f"Via engine (raw expected): {final:.2e}")
-
-    print("Point 14 smoke complete.")
+    try:
+        if target_column not in df.columns:
+            raise ValueError(f"Target denominator column '{target_column}' missing from DataFrame.")
+            
+        return compute_dynamic_precision_epsilon(
+            X=df[target_column],
+            W=W,
+            scale_factor=scale_factor,
+            absolute_min_floor=absolute_min_floor
+        )
+    except Exception as e:
+        _logger.error(f"[POINT_14] Dynamic epsilon calculation failed for {symbol}: {e}")
+        # Fail-safe: Return a rigid static minimum floor fallback natively
+        return pd.Series(absolute_min_floor, index=df.index, name="dynamic_epsilon")

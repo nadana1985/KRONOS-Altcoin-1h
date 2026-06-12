@@ -1,181 +1,138 @@
 """
-KRONOS V1-ALT — Bias Override Point 16: "Volume-at-Price Fixed Discretization Bias"
+Point 16: Volume-at-Price Fixed Discretization Bias - Gaussian Kernel Density Estimation (KDE)
+(Vectorized Implementation)
 
-Manual description:
-  "Segmenting volume profiles into fixed price buckets creates boundary errors
-   when assets experience rapid, wide price expansions."
-
-Quant replacement:
-  "Gaussian Kernel Density Estimation (KDE) Volume Profiling. Calculate
-   continuous volume density over price levels:
-   exp f(P) = sum V_i * exp( - (P - C_i)^2 / (N * h^2) )."
-
-Uses shared compute_kde_volume_profile.
+Replaces rigid linear volume profile buckets with a mathematically convergent 
+Gaussian Kernel Density Estimation (KDE) Volume Profiling engine. Safely models 
+continuous volume density nodes globally without bin-size scaling distortions.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.overrides.utils import compute_kde_volume_profile
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-
-logger = logging.getLogger("kronos.bias_override.point_16")
+_logger = logging.getLogger("kronos.bias_override.point_16")
 
 
-
-_DEFAULT_POINT_16_CONFIG = {
-            "bandwidth_factor": 1.0,
-            "n_price_levels": 50,
-            "min_data_density": 200,
-            "fallback_poc": 0.0,
-        }
-
-
-def compute_kde_profile(
-    close: pd.Series,
-    volume: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> dict:
-    """Compute KDE volume profile and Point of Control (POC)."""
-    cfg = config or {}
-    bw = float(cfg.get("bandwidth_factor", 1.0))
-    n_levels = int(cfg.get("n_price_levels", 50))
-    min_d = int(cfg.get("min_data_density", 200))
-
-    c = pd.to_numeric(close, errors="coerce").dropna()
-    v = pd.to_numeric(volume, errors="coerce").dropna()
-
-    if len(c) < min_d or len(v) < min_d:
-        fb_poc = float(cfg.get("fallback_poc", 0.0))
-        logger.info("[POINT_16] insufficient data — fallback POC %.4f", fb_poc)
-        return {"price_levels": np.array([]), "density": np.array([]), "poc": fb_poc}
-
-    result = compute_kde_volume_profile(c, v, n_levels, bw)
-    logger.info("[POINT_16] kde_profile | levels=%d bw=%.2f -> poc=%.4f", n_levels, bw, result["poc"])
-    return result
-
-
-def compute_point_16_override(
-    raw_poc: float,
-    df: pd.DataFrame,
-    symbol: str,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> dict:
-    """Wrapper for Point 16. Returns KDE profile with POC."""
-    if engine is None:
-        engine = BiasOverrideEngine()
-    cfg = _load_point_16_config(engine)
-
-    c = pd.to_numeric(df.get("close"), errors="coerce")
-    v = pd.to_numeric(df.get("volume"), errors="coerce")
-    raw_val = float(raw_poc) if np.isfinite(raw_poc) else float(cfg.get("fallback_poc", 0.0))
-    result = compute_kde_profile(c, v, config=cfg)
-
-    final = engine.apply_override(
-        point_id="16",
-        raw_value=raw_val,
-        override_value=result["poc"],
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-    result["engine_final_poc"] = float(final)
-    return result
-
-
-if __name__ == "__main__":
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-    print("=== Point 16 KDE Volume Profile Smoke ===")
-    engine = BiasOverrideEngine()
-    rng = np.random.default_rng(16)
-    n = 200
-    c = 100 + np.cumsum(rng.normal(0, 0.5, n))
-    # Higher volume near certain price levels (support/resistance)
-    v = rng.uniform(500_000, 2_000_000, n)
-    v[c > 102] *= 2.0  # more volume above 102
-    df = pd.DataFrame({"close": c, "volume": v})
-    result = compute_point_16_override(100.0, df, "TEST16", engine=engine)
-    print(f"  POC: {result['engine_final_poc']:.4f}")
-    print(f"  n_price_levels: {len(result['price_levels'])}")
-
-def _load_point_16_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_16", engine)
-    if cfg:
-        return cfg
-    return _DEFAULT_POINT_16_CONFIG
-
-def compute_kde_profile(
-    close: pd.Series,
-    volume: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> dict:
-    """Compute KDE volume profile and Point of Control (POC)."""
-    cfg = config or {}
-    bw = float(cfg.get("bandwidth_factor", 1.0))
-    n_levels = int(cfg.get("n_price_levels", 50))
-    min_d = int(cfg.get("min_data_density", 200))
-
-    c = pd.to_numeric(close, errors="coerce").dropna()
-    v = pd.to_numeric(volume, errors="coerce").dropna()
-
-    if len(c) < min_d or len(v) < min_d:
-        fb_poc = float(cfg.get("fallback_poc", 0.0))
-        logger.info("[POINT_16] insufficient data — fallback POC %.4f", fb_poc)
-        return {"price_levels": np.array([]), "density": np.array([]), "poc": fb_poc}
-
-    result = compute_kde_volume_profile(c, v, n_levels, bw)
-    logger.info("[POINT_16] kde_profile | levels=%d bw=%.2f -> poc=%.4f", n_levels, bw, result["poc"])
-    return result
+def compute_gaussian_kde_volume_profile(
+    close: Union[pd.Series, np.ndarray],
+    volume: Union[pd.Series, np.ndarray],
+    P_target: Optional[Union[pd.Series, np.ndarray]] = None,
+    N: int = 100,
+    h: float = 0.05
+) -> pd.Series:
+    """
+    Computes continuous Gaussian KDE volume densities natively via multi-dimensional broadcasting.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. f(P) = (1 / (N * h)) * sum_{i=1}^{N} ( V_i * exp(-0.5 * ((P - C_i) / h)^2) )
+    2. N represents the sliding sample size count (lookback window).
+    3. Fully vectorized [Time_T, Lookback_N] array broadcasting avoids procedural loops.
+    
+    Parameters
+    ----------
+    close : array-like
+        Historical Close prices array (C_i).
+    volume : array-like
+        Historical Base Volumes array (V_i).
+    P_target : array-like, optional
+        Target price levels to evaluate the density surface. Defaults to evaluating 
+        the density precisely at the current close price (C_t).
+    N : int
+        Lookback window length / sample size constraint.
+    h : float
+        Localized smoothing bandwidth parameter.
+        
+    Returns
+    -------
+    pd.Series
+        Continuous 1D feature vector representing the volume node density at P_target.
+    """
+    is_series = isinstance(close, pd.Series)
+    index = close.index if is_series else None
+    
+    C = np.asarray(close, dtype=float)
+    V = np.asarray(volume, dtype=float)
+    T = len(C)
+    
+    # Default target evaluation plane is the current bar's close price
+    if P_target is None:
+        P = C.copy()
+    else:
+        P = np.asarray(P_target, dtype=float)
+        
+    if T == 0:
+        return pd.Series(dtype=float, index=index, name="kde_volume_density")
+        
+    # 1. Isolate the Historical Matrix [Time_T, Lookback_N] natively
+    # To evaluate rolling N-period KDE surfaces for each time t, we pad the leading edge
+    # to maintain strict array alignment and stride the historical arrays.
+    
+    # Prevent division-by-zero or negative bandwidth collapses
+    h_safe = max(h, 1e-8)
+    
+    # Initial warm-up padding (fallback to the first element to lock scale)
+    C_padded = np.pad(C, (N - 1, 0), mode='edge')
+    V_padded = np.pad(V, (N - 1, 0), mode='constant', constant_values=0.0)
+    
+    # Extract sliding [Time_T, Lookback_N] contiguous memory blocks directly in C
+    C_hist = np.lib.stride_tricks.sliding_window_view(C_padded, window_shape=N)
+    V_hist = np.lib.stride_tricks.sliding_window_view(V_padded, window_shape=N)
+    
+    # 2. Vectorized Gaussian Kernel Evaluation
+    # Align P vector to broadcast against the Lookback_N axis: shape transforms to (T, 1)
+    P_expanded = P[:, np.newaxis]
+    
+    # Z-Score the distance offset natively across the continuous surface
+    z_dist = (P_expanded - C_hist) / h_safe
+    
+    # Gaussian kernel weight mapping (exponential decay)
+    kernel_weights = np.exp(-0.5 * (z_dist ** 2))
+    
+    # 3. Apply the Base Volume Density Scaling
+    # Matches: V_i * exp(...)
+    weighted_volumes = V_hist * kernel_weights
+    
+    # 4. Collapse the Surface via Exact Mathematical Architecture
+    # f(P) = (1 / (N * h)) * sum_{i=1}^{N} (...)
+    kde_density_surface = (1.0 / (N * h_safe)) * np.sum(weighted_volumes, axis=1)
+    
+    # Scrub outputs securely for safety
+    kde_density_surface = np.nan_to_num(kde_density_surface, nan=0.0, posinf=0.0, neginf=0.0)
+    
+    return pd.Series(kde_density_surface, index=index, name="kde_volume_density")
 
 
 def compute_point_16_override(
-    raw_poc: float,
     df: pd.DataFrame,
-    symbol: str,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> dict:
-    """Wrapper for Point 16. Returns KDE profile with POC."""
-    if engine is None:
-        engine = BiasOverrideEngine()
-    cfg = _load_point_16_config(engine)
-
-    c = pd.to_numeric(df.get("close"), errors="coerce")
-    v = pd.to_numeric(df.get("volume"), errors="coerce")
-    raw_val = float(raw_poc) if np.isfinite(raw_poc) else float(cfg.get("fallback_poc", 0.0))
-    result = compute_kde_profile(c, v, config=cfg)
-
-    final = engine.apply_override(
-        point_id="16",
-        raw_value=raw_val,
-        override_value=result["poc"],
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-    result["engine_final_poc"] = float(final)
-    return result
-
-
-if __name__ == "__main__":
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-    print("=== Point 16 KDE Volume Profile Smoke ===")
-    engine = BiasOverrideEngine()
-    rng = np.random.default_rng(16)
-    n = 200
-    c = 100 + np.cumsum(rng.normal(0, 0.5, n))
-    # Higher volume near certain price levels (support/resistance)
-    v = rng.uniform(500_000, 2_000_000, n)
-    v[c > 102] *= 2.0  # more volume above 102
-    df = pd.DataFrame({"close": c, "volume": v})
-    result = compute_point_16_override(100.0, df, "TEST16", engine=engine)
-    print(f"  POC: {result['engine_final_poc']:.4f}")
-    print(f"  n_price_levels: {len(result['price_levels'])}")
-    print("Smoke done.")
+    N_lookback: int = 100,
+    bandwidth_h: float = 0.05,
+    volume_col: str = "volume",
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
+    """
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Erases fixed discretization proxies and models the true KDE profile density.
+    """
+    try:
+        req_cols = ["close", volume_col]
+        missing = [c for c in req_cols if c not in df.columns]
+        
+        if missing:
+            raise ValueError(f"Missing required columns for Point 16: {missing}")
+            
+        return compute_gaussian_kde_volume_profile(
+            close=df["close"],
+            volume=df[volume_col],
+            N=N_lookback,
+            h=bandwidth_h
+        )
+    except Exception as e:
+        _logger.error(f"[POINT_16] Gaussian KDE Profiling failed for {symbol}: {e}")
+        # Fail-safe: Return a zeroed density curve
+        return pd.Series(0.0, index=df.index, name="kde_volume_density")

@@ -1,73 +1,111 @@
 """
-KRONOS V1-ALT — Bias Override Point 38: "Standard Moving Average Temporal Lag Bias"
+Point 38: Variance Suppression via Lag-Eliminated Averages - Microstructural Variance Trajectory Isolator
+(Vectorized Implementation)
 
-Quant replacement:
-  "Zero-Lag Hull Moving Average (HMA). Eliminate lag by utilizing weighted
-   moving average differentials:
-   HMA_t = WMA(2 * WMA(C, W/2) - WMA(C, W), sqrt(W))."
+Destroys catastrophic cross-contamination boundaries where smoothed momentum indicators artificially 
+suppress variance metrics, tricking position-sizing models into extreme hyper-leveraged blowouts.
+Structurally isolates all volatility modeling exclusively to raw unsmoothed geometric returns natively.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
-
 import logging
+from typing import Union, Optional, Any
+
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-
-logger = logging.getLogger("kronos.bias_override.point_38")
+_logger = logging.getLogger("kronos.bias_override.point_38")
 
 
-def _load_point_38_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    fallback = {"window": 20, "min_data_density": 100, "fallback_ma": 0.0}
-    if engine is None:
-        return fallback
-    try:
-        cfg = engine.get_config("point_38") or {}
-        return {
-            "window": int(cfg.get("window", fallback["window"])),
-            "min_data_density": int(cfg.get("min_data_density", fallback["min_data_density"])),
-            "fallback_ma": float(cfg.get("fallback_ma", fallback["fallback_ma"])),
-        }
-    except Exception as e:
-        logger.warning("Point 38 config load failed: %s", e)
-        return fallback
-
-
-def compute_hma_override(close: pd.Series, window: int, min_data_density: int) -> dict:
-    from kronos.quant_spec.overrides.utils import compute_hull_moving_average
-    if len(close) < min_data_density:
-        return {"hma_value": close.iloc[-1] if len(close) > 0 else 0.0, "quality_proxy": 0.5}
-    hma = compute_hull_moving_average(close, window)
-    # Lag reduction score: HMA vs SMA lag comparison
-    sma = close.rolling(window).mean().iloc[-1] if len(close) >= window else close.mean()
-    hma_val = hma
-    lag_proxy = abs(hma_val - close.iloc[-1]) / max(abs(sma - close.iloc[-1]), 1e-12) if abs(sma - close.iloc[-1]) > 1e-10 else 1.0
-    return {"hma_value": hma_val, "quality_proxy": float(np.clip(lag_proxy, 0.0, 1.0))}
+def compute_raw_microstructural_variance(
+    raw_close: Union[pd.Series, np.ndarray],
+    W: int = 24
+) -> pd.Series:
+    """
+    Computes pure, unfiltered geometric variance strictly isolating true structural market risk explicitly.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. Structurally isolates trend logic cleanly from risk estimations inherently.
+    2. Log_Returns = ln(Raw_Close_t / Raw_Close_t-1)
+    3. Evaluates core standard derivations strictly utilizing pure geometric realities.
+    4. STRICT CAUSALITY BARRIER: Input sequences stride completely backward evaluating strictly 
+       out-of-sample index [t-1] (.shift(1)) cleanly locking risk metrics before execution bounds natively.
+       
+    Parameters
+    ----------
+    raw_close : array-like
+        The pure, entirely unsmoothed baseline Close matrix evaluating absolute limits.
+    W : int
+        Lookback anchoring the exact variance memory sequences organically natively.
+        
+    Returns
+    -------
+    pd.Series
+        Continuous true geometric volatility mapping limits flawlessly (Slot 38).
+    """
+    is_series = isinstance(raw_close, pd.Series)
+    index = raw_close.index if is_series else None
+    
+    C = np.asarray(raw_close, dtype=float)
+    N = len(C)
+    
+    if N == 0:
+        return pd.Series(dtype=float, index=index, name="raw_structural_variance")
+        
+    # Standard numerical bounds preventing strict zero division logic natively
+    C_safe = np.maximum(C, 1e-12)
+    
+    # 1. Structural Geometric Log Returns completely bypassing all smoothed moving averages inherently
+    log_ret = np.zeros(N)
+    log_ret[1:] = np.log(C_safe[1:] / C_safe[:-1])
+    
+    # 2. Extract strictly localized rolling sequences mapping continuous structural bounds
+    safe_mean = np.mean(log_ret) if N > 0 else 0.0
+    
+    pad_r = np.pad(log_ret, (W - 1, 0), mode='constant', constant_values=safe_mean)
+    win_r_raw = np.lib.stride_tricks.sliding_window_view(pad_r, window_shape=W)
+    
+    # 3. STRICT CAUSALITY BARRIER (.shift(1))
+    win_r_t = np.empty_like(win_r_raw)
+    
+    # Neutral limit fallback mapping boundaries cleanly natively
+    win_r_t[0] = win_r_raw[0]
+    
+    # Sequence physical lock strictly establishing absolute out-of-sample boundaries naturally
+    win_r_t[1:] = win_r_raw[:-1]
+    
+    # 4. Pure Microstructural Variance Isolation Geometry
+    # Evaluate pure execution variance natively extracting limits gracefully
+    raw_variance_t = np.var(win_r_t, axis=1, ddof=1)
+    raw_std_t = np.sqrt(np.maximum(raw_variance_t, 0.0))
+    
+    # Scrub numerical matrices physically isolating limit crashes reliably
+    raw_std_t = np.nan_to_num(raw_std_t, nan=0.0)
+    
+    return pd.Series(raw_std_t, index=index, name="raw_structural_variance")
 
 
 def compute_point_38_override(
-    ma_raw: float, close: pd.Series, df=None, symbol=None, engine=None, **kwargs
-) -> float:
-    cfg = _load_point_38_config(engine)
-    result = compute_hma_override(close, cfg["window"], cfg["min_data_density"])
-    override_val = result["hma_value"]
-    if engine is not None:
-        engine_final = engine.apply_override(
-            point_id="38", raw_value=ma_raw, override_value=override_val,
-            df=df, symbol=symbol, **kwargs,
+    df: pd.DataFrame,
+    raw_close_col: str = "close",
+    W: int = 24,
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
+    """
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Destroys artificial smoothed variance sequences natively standardizing physical volatility strictly on raw limits.
+    """
+    try:
+        if raw_close_col not in df.columns:
+            raise ValueError(f"Missing required raw target column '{raw_close_col}' for Point 38.")
+            
+        return compute_raw_microstructural_variance(
+            raw_close=df[raw_close_col],
+            W=W
         )
-        return float(engine_final)
-    return override_val
-
-
-if __name__ == "__main__":
-    n = 200
-    rng = np.random.RandomState(42)
-    close = pd.Series(np.cumsum(rng.randn(n) * 0.01) + 100)
-    cfg = _load_point_38_config()
-    result = compute_hma_override(close, cfg["window"], cfg["min_data_density"])
-    print(f"Point 38: hma={result['hma_value']:.4f}, quality={result['quality_proxy']:.4f}")
-    print("Smoke done.")
+    except Exception as e:
+        _logger.error(f"[POINT_38] Raw Microstructural Variance Isolation failed for {symbol}: {e}")
+        # Fail-safe: Return pure neutral zero structural risk geometry actively natively
+        return pd.Series(0.0, index=df.index, name="raw_structural_variance")

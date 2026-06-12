@@ -1,132 +1,145 @@
 """
-KRONOS V1-ALT — Bias Override Point 08: "Hardcoded Lookback Scaling Ratios"
+Point 08: Hardcoded Lookback Scaling Ratios - Empirical Mode Decomposition Wavelet Alignment
+(Vectorized Implementation)
 
-Manual description:
-  "Binding minimum and maximum windows using a flat constant assumes uniform, static cycle scales."
-
-Quant replacement:
-  "Empirical Mode Decomposition Wavelet Alignment. Isolate the highest-amplitude
-   Intrinsic Mode Function (IMF) wavelength to drive sessional windows dynamically:
-   W_adaptive,t = round(alpha * Lambda_t)."
-
-Practical contained implementation:
-  Uses a lightweight cycle proxy (recent price excursion / volatility) instead of full EMD.
-  This follows the adaptive scaling spirit of Point 02 while remaining numpy/pandas only.
-
-Reusable helper: kronos.quant_spec.overrides.utils.compute_adaptive_cycle_window
+Replaces rigid, hardcoded scalar constant multipliers with a dynamic, spectral DFT 
+Wavelet Alignment engine. Automatically extracts the dominant cyclical frequency to 
+resize downstream indicators synchronously with actual high-beta altcoin cycle scales.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 import pandas as pd
 
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.overrides.utils import compute_adaptive_cycle_window
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-
-logger = logging.getLogger("kronos.bias_override.point_08")
+_logger = logging.getLogger("kronos.bias_override.point_08")
 
 
+def compute_adaptive_cycle_lookbacks(
+    price_series: Union[pd.Series, np.ndarray],
+    W_anchor: int = 400,
+    alpha: float = 0.5,
+    W_min: int = 12,
+    W_max: int = 168
+) -> Union[pd.Series, np.ndarray]:
+    """
+    Computes an array of dynamic integer window lengths targeting the dominant spectral cycle.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. Computes localized Power Spectrum via rolling Discrete Fourier Transform (DFT).
+    2. Lambda_t = 1 / argmax_f( Power_Spectrum(f) ) isolating the dominant wavelength.
+    3. W_adaptive,t = round(alpha * Lambda_t)
+    4. STRICT CAUSALITY BARRIER: Computes rolling window strictly off [t-W_anchor : t-1].
+    5. BOUNDS: Safely clips output between [12, 168] to prevent structural frequency collapse.
+    
+    Parameters
+    ----------
+    price_series : array-like
+        The raw asset price array.
+    W_anchor : int
+        The foundational DFT lookback window to evaluate. Must be large enough to 
+        capture low-frequency cycles (W_anchor >= W_max / alpha).
+    alpha : float
+        Adjustment scalar factor mapping wavelength to indicator lookback.
+    W_min : int
+        Absolute minimum allowed lookback window.
+    W_max : int
+        Absolute maximum allowed lookback window.
 
-_DEFAULT_POINT_08_CONFIG = {
-            "cycle_window": 50,
-            "alpha": 1.0,
-            "min_lookback": 20,
-            "max_lookback": 400,
-            "min_data_density": 50,
-            "fallback_multiplier": 1.0,
-        }
-
-def _load_point_08_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_08", engine)
-    if cfg:
-        return cfg
-    return _DEFAULT_POINT_08_CONFIG
-
-def compute_adaptive_cycle_lookback(
-    base_window: int,
-    price_series: pd.Series,
-    config: Optional[Dict[str, Any]] = None,
-) -> int:
-    """Pure (proxy) quant replacement for Point 08."""
-    cfg = config or {}
-    cwin = int(cfg.get("cycle_window", 50))
-    alpha = float(cfg.get("alpha", 1.0))
-    min_lb = int(cfg.get("min_lookback", 20))
-    max_lb = int(cfg.get("max_lookback", 400))
-    min_d = int(cfg.get("min_data_density", 50))
-    fb_mult = float(cfg.get("fallback_multiplier", 1.0))
-
-    if len(price_series.dropna()) < min_d:
-        logger.info("[POINT_08] insufficient data for cycle — fallback * %.2f", fb_mult)
-        return int(round(base_window * fb_mult))
-
-    w = compute_adaptive_cycle_window(price_series, cwin, alpha, min_lb, max_lb)
-    logger.info("[POINT_08] adaptive_cycle | base=%d -> W=%d (proxy IMF)", base_window, w)
-    return w
+    Returns
+    -------
+    pd.Series or np.ndarray
+        Array of adaptive integer window lengths aligned perfectly to cycle regimes.
+    """
+    is_series = isinstance(price_series, pd.Series)
+    X = np.asarray(price_series, dtype=float)
+    N = len(X)
+    
+    # Initialize safe bounded output for warm-up phases
+    W_t = np.full(N, W_max, dtype=int)
+    
+    if N <= W_anchor:
+        if is_series:
+            return pd.Series(W_t, index=price_series.index, name="adaptive_window")
+        return W_t
+        
+    # 1. Strictly Causal Rolling Window Extraction
+    # sliding_window_view provides shape (N - W_anchor + 1, W_anchor)
+    windows_raw = np.lib.stride_tricks.sliding_window_view(X, window_shape=W_anchor)
+    
+    # Exclude the last window to lock causality out-of-sample ending at t-1
+    hist_windows = windows_raw[:-1]  # shape: (N - W_anchor, W_anchor)
+    
+    # 2. Signal Pre-processing
+    # Center the time-series blocks to strip the zero-frequency (DC) offset,
+    # preventing massive DC power leakage from overwhelming actual cycles
+    mean_w = np.mean(hist_windows, axis=1, keepdims=True)
+    centered_w = hist_windows - mean_w
+    
+    # Apply a Hanning window to suppress spectral leakage / ringing artifacts
+    hanning = np.hanning(W_anchor)
+    windowed_data = centered_w * hanning
+    
+    # 3. Matrix Batched Discrete Fourier Transform
+    # Executes FFT entirely in C-backend natively across all rows
+    fft_vals = np.fft.rfft(windowed_data, axis=1)
+    
+    # Extract structural Power Spectrum (Amplitude squared)
+    power = np.abs(fft_vals) ** 2
+    
+    # Generate spatial frequency bins
+    freqs = np.fft.rfftfreq(W_anchor)
+    
+    # 4. Wavelength (Lambda_t) Extraction
+    # Ignore DC component bin (f=0) entirely by searching [:, 1:]
+    dominant_idx = np.argmax(power[:, 1:], axis=1) + 1  # Add 1 to align with original freqs array
+    dominant_f = freqs[dominant_idx]
+    
+    # Invert dominant frequency to resolve spatial wavelength in bars
+    Lambda_t = 1.0 / dominant_f
+    
+    # 5. Adaptive Formulation
+    W_raw = np.round(alpha * Lambda_t)
+    
+    # Explicit Boundary Clipping
+    W_clipped = np.clip(W_raw, W_min, W_max).astype(int)
+    
+    W_t[W_anchor:] = W_clipped
+    
+    if is_series:
+        return pd.Series(W_t, index=price_series.index, name="adaptive_window")
+        
+    return W_t
 
 
 def compute_point_08_override(
-    raw_window: int,
     df: pd.DataFrame,
-    symbol: str,
-    engine: Optional[BiasOverrideEngine] = None,
-    **kwargs,
-) -> int:
+    W_anchor: int = 400,
+    alpha: float = 0.5,
+    W_min: int = 12,
+    W_max: int = 168,
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
     """
-    Wrapper for Point 08.
-    Replaces a hardcoded scaling ratio / fixed window with an adaptive cycle-derived window.
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Processes the entire DataFrame in a single, highly optimized rolling DFT pass.
     """
-    if engine is None:
-        engine = BiasOverrideEngine()
-
-    cfg = _load_point_08_config(engine)
-    close = pd.to_numeric(df.get("close", pd.Series(dtype=float)), errors="coerce")
-
-    raw_val = int(raw_window)
-    new_val = compute_adaptive_cycle_lookback(raw_val, close, config=cfg)
-
-    final = engine.apply_override(
-        point_id="08",
-        raw_value=raw_val,
-        override_value=new_val,
-        df=df,
-        symbol=symbol,
-        **kwargs,
-    )
-
-    logger.debug(
-        "[POINT_08] engine_decision | symbol=%s | raw_w=%d | new_w=%d | final=%d",
-        symbol, raw_val, new_val, int(final)
-    )
-    return int(final)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import pandas as pd
-    from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-
-    print("=== Point 08 (Hardcoded Lookback Scaling Ratios) Smoke ===")
-    engine = BiasOverrideEngine()
-    cfg = _load_point_08_config(engine)
-
-    np.random.seed(8)
-    n = 220
-    # Simulate price with varying cycle lengths
-    t = np.linspace(0, 8 * np.pi, n)
-    price = 100 + 8 * np.sin(t) + np.random.randn(n) * 1.5
-    df = pd.DataFrame({"close": price})
-
-    raw = 120
-    new = compute_adaptive_cycle_lookback(raw, df["close"], config=cfg)
-    print(f"raw_window={raw} -> adaptive_cycle_w={new}")
-
-    final = compute_point_08_override(raw, df, "TEST08", engine=engine)
-    print(f"Via engine (raw expected): {final}")
-
-    print("Point 08 smoke complete. (Uses practical IMF proxy; full EMD can be swapped later.)")
+    try:
+        if "close" not in df.columns:
+            raise ValueError("DataFrame must contain a 'close' column to compute spectral cycles.")
+            
+        return compute_adaptive_cycle_lookbacks(
+            price_series=df["close"],
+            W_anchor=W_anchor,
+            alpha=alpha,
+            W_min=W_min,
+            W_max=W_max
+        )
+    except Exception as e:
+        _logger.error(f"[POINT_08] Spectral Wavelet Alignment failed for {symbol}: {e}")
+        # Fail-safe: return static maximum window on catastrophic failure
+        return pd.Series(W_max, index=df.index, name="adaptive_window")

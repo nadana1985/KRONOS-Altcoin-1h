@@ -1,66 +1,125 @@
 """
-Point 02: Rigid Feature Window Bias - Volatility-Scaled Lookback Adaptation
+Point 02: Rigid Feature Window Bias - Dynamic Volatility-Scaled Lookback Adaptation
+(Vectorized Implementation)
+
+Replaces all hardcoded, rigid lookback spans with a dynamically scaling volatility engine.
+W_t = round(W_base * (1 + sigma_rel,t) ** (-gamma))
 """
+
+from __future__ import annotations
+
 import logging
-from typing import Optional, Dict, Any
+from typing import Union, Optional, Any
+
 import numpy as np
 import pandas as pd
-from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
-from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
-from kronos.quant_spec.overrides.utils import compute_volatility_scaled_window
 
 _logger = logging.getLogger("kronos.bias_override.point_02")
 
-_DEFAULT_CONFIG = {
-    "gamma": 0.5,
-    "vol_short_window": 20,
-    "vol_reference_window": 100,
-    "vol_reference_method": "median",
-    "min_lookback": 20,
-    "max_lookback": 500,
-    "min_data_density": 30,
-    "fallback_multiplier": 1.0,
-    "slot15_history_base": 100
-}
 
-def _load_point_02_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
-    cfg = get_cached_point_config_with_engine_fallback("point_02", engine)
-    return cfg if cfg else _DEFAULT_CONFIG
+def compute_dynamic_lookback_windows(
+    close: Union[pd.Series, np.ndarray],
+    W_base: int = 168,
+    gamma: float = 0.5,
+    short_window: int = 24,
+    long_window: int = 168,
+    W_min: int = 24,
+    W_max: int = 336
+) -> Union[pd.Series, np.ndarray]:
+    """
+    Computes an array of dynamic lookback windows scaled by relative volatility.
+    
+    MATHEMATICAL SPECIFICATION:
+    1. W_t = round(W_base * (1 + sigma_rel,t) ** (-gamma))
+    2. sigma_rel,t = sigma_short,t / sigma_long,t
+    3. STRICT CAUSALITY BARRIER: Volatility metrics at time 't' are computed strictly
+       using data up to 't-1' via .shift(1).
+    4. BOUNDARY CLIPPING: Results are strictly clipped between [W_min, W_max].
+    
+    Parameters
+    ----------
+    close : pd.Series or np.ndarray
+        Array or Series of close prices.
+    W_base : int
+        The foundational anchor window (e.g., 168 hours).
+    gamma : float
+        Volatility sensitivity dampener (e.g., 0.5).
+    short_window : int
+        Lookback for short-term rolling volatility metric (sigma_short).
+    long_window : int
+        Lookback for long-term rolling volatility metric (sigma_long).
+    W_min : int
+        Absolute minimum allowed lookback window.
+    W_max : int
+        Absolute maximum allowed lookback window.
 
-def _compute_relative_volatility(df: pd.DataFrame, cfg: Dict[str, Any]) -> float:
-    if df is None or len(df) < cfg["vol_reference_window"]:
-        return 1.0
+    Returns
+    -------
+    pd.Series or np.ndarray
+        A sequence of integer window assignments representing the exact adaptive window length.
+    """
+    is_series = isinstance(close, pd.Series)
+    s = pd.Series(close) if not is_series else close
+    
+    # 1. Compute log returns safely
+    eps = 1e-12
+    s_float = s.astype(float)
+    rets = np.log((s_float / s_float.shift(1).clip(lower=eps)).clip(lower=eps))
+    
+    # 2. Compute strictly causal rolling standard deviations
+    # The .shift(1) explicitly enforces the strict causality barrier (t-1).
+    sigma_short = rets.rolling(window=short_window, min_periods=2).std().shift(1)
+    sigma_long = rets.rolling(window=long_window, min_periods=2).std().shift(1)
+    
+    # 3. Compute relative volatility (sigma_rel,t = sigma_short,t / sigma_long,t)
+    # Safe division: map div-by-zero to NaN, then fill invalid bounds with 1.0 (neutral fallback)
+    sigma_long_safe = sigma_long.replace(0.0, np.nan)
+    sigma_rel = (sigma_short / sigma_long_safe).fillna(1.0)
+    sigma_rel = sigma_rel.replace([np.inf, -np.inf], 1.0)
+    
+    # 4. Compute dynamic lookback window W_t
+    W_t_raw = np.round(W_base * (1.0 + sigma_rel) ** (-gamma))
+    
+    # 5. Boundary Clipping & integer casting
+    W_t = W_t_raw.clip(lower=W_min, upper=W_max).fillna(W_base).astype(int)
+    
+    if is_series:
+        return pd.Series(W_t, index=s.index, name="dynamic_window")
+    return W_t.to_numpy()
+
+
+# Top-level adapter for the BiasOverrideEngine pipeline
+def compute_point_02_override(
+    df: pd.DataFrame,
+    W_base: int = 168,
+    gamma: float = 0.5,
+    short_window: int = 24,
+    long_window: int = 168,
+    W_min: int = 24,
+    W_max: int = 336,
+    engine: Optional[Any] = None,
+    symbol: str = ''
+) -> pd.Series:
+    """
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Processes the entire DataFrame in a single, highly optimized vectorized pass.
+    Output Series matches the original DataFrame index and contains the assigned window bounds.
+    """
     try:
-        close = pd.to_numeric(df["close"], errors="coerce")
-        ret = np.log((close / close.shift(1).clip(lower=1e-12)).clip(lower=1e-12)).dropna()
-        short_vol = ret.tail(cfg["vol_short_window"]).std()
-        
-        # very simplified reference
-        ref_vol = ret.tail(cfg["vol_reference_window"]).std()
-        
-        if not np.isfinite(short_vol) or not np.isfinite(ref_vol) or ref_vol <= 0:
-            return 1.0
-        return float(short_vol / ref_vol)
+        if "close" not in df.columns:
+            raise ValueError("DataFrame must contain a 'close' column to compute relative volatility.")
+            
+        return compute_dynamic_lookback_windows(
+            close=df["close"],
+            W_base=W_base,
+            gamma=gamma,
+            short_window=short_window,
+            long_window=long_window,
+            W_min=W_min,
+            W_max=W_max
+        )
     except Exception as e:
-        _logger.debug(f"[POINT_02] Rel vol error: {e}")
-        return 1.0
-
-def get_volatility_scaled_window(base_window: int, df: pd.DataFrame, symbol: str, engine: Optional[BiasOverrideEngine] = None) -> int:
-    cfg = _load_point_02_config(engine)
-    rel_vol = _compute_relative_volatility(df, cfg)
-    return compute_volatility_scaled_window(base_window, rel_vol, cfg["gamma"], cfg["min_lookback"], cfg["max_lookback"])
-
-def get_slot15_history_lookback(df: pd.DataFrame, symbol: str, engine: Optional[BiasOverrideEngine] = None) -> int:
-    cfg = _load_point_02_config(engine)
-    return get_volatility_scaled_window(cfg.get("slot15_history_base", 100), df, symbol, engine)
-
-def compute_point_02_override(current_window: int, base_window: int, rel_volatility: float, gamma: float = 0.5, engine: Optional[BiasOverrideEngine] = None, df: Optional[pd.DataFrame] = None, symbol: str = '') -> int:
-    try:
-        cfg = _load_point_02_config(engine)
-        scaled = compute_volatility_scaled_window(base_window, rel_volatility, cfg["gamma"], cfg["min_lookback"], cfg["max_lookback"])
-        if engine:
-            return engine.apply_override(point_id="02", raw_value=current_window, override_value=scaled, df=df, symbol=symbol)
-        return scaled
-    except Exception as e:
-        _logger.debug(f"[POINT_02] Error: {e}")
-        return current_window
+        _logger.error(f"[POINT_02] Failed to compute dynamic lookbacks for {symbol}: {e}")
+        # Fail-safe: return static base window array on catastrophic failure
+        n = len(df)
+        return pd.Series(np.full(n, W_base, dtype=int), index=df.index, name="dynamic_window")
