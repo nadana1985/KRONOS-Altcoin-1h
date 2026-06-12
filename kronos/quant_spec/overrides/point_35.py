@@ -10,13 +10,20 @@ post-test chronological embargo logic to generate mathematically pure out-of-sam
 from __future__ import annotations
 
 import logging
-from typing import Generator, Iterable, Optional, Tuple, Any, Union
+from typing import Generator, Iterable, Optional, Tuple, Any, Union, Dict
 
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 
+from kronos.quant_spec.bias_override_engine import BiasOverrideEngine
+from kronos.quant_spec.override_config_cache import get_cached_point_config_with_engine_fallback
+
 _logger = logging.getLogger("kronos.bias_override.point_35")
+
+_DEFAULT_CONFIG = {
+    "fallback_purge_ratio": 0.15,
+}
 
 
 class PurgedEmbargoedTimeSeriesSplit:
@@ -123,3 +130,36 @@ def compute_purged_embargoed_mask(
     mask[test_end + 1:embargo_end] = False
     
     return mask
+
+
+def _load_point_35_config(engine: Optional[BiasOverrideEngine] = None) -> Dict[str, Any]:
+    cfg = get_cached_point_config_with_engine_fallback("point_35", engine)
+    return cfg if cfg else _DEFAULT_CONFIG
+
+
+def compute_point_35_override(
+    raw_train_size: int,
+    event_index: int,
+    horizon: int = 4,
+    df: Optional[pd.DataFrame] = None,
+    symbol: str = '',
+    engine: Optional[BiasOverrideEngine] = None
+) -> int:
+    """
+    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    """
+    try:
+        cfg = _load_point_35_config(engine)
+        override_val = int(raw_train_size * (1 - cfg.get("fallback_purge_ratio", 0.15)))
+        if engine:
+            return engine.apply_override(
+                point_id="35",
+                raw_value=raw_train_size,
+                override_value=override_val,
+                df=df,
+                symbol=symbol
+            )
+        return override_val
+    except Exception as e:
+        _logger.debug(f"[POINT_35] Error: {e}")
+        return raw_train_size
