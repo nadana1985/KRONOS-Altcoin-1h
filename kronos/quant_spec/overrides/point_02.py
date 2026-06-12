@@ -1,9 +1,6 @@
 """
 Point 02: Rigid Feature Window Bias - Dynamic Volatility-Scaled Lookback Adaptation
-(Vectorized Implementation)
-
-Replaces all hardcoded, rigid lookback spans with a dynamically scaling volatility engine.
-W_t = round(W_base * (1 + sigma_rel,t) ** (-gamma))
+(Vectorized & Scalar Hardened Implementation)
 """
 
 from __future__ import annotations
@@ -56,22 +53,10 @@ def _compute_relative_volatility(df: pd.DataFrame, cfg: Dict[str, Any]) -> float
         return 1.0
 
 
-def compute_volatility_scaled_lookback(base_window: int, df: pd.DataFrame, config: Optional[Dict[str, Any]] = None) -> int:
-    cfg = config or _DEFAULT_CONFIG
-    rel_vol = _compute_relative_volatility(df, cfg)
-    return int(compute_volatility_scaled_window(
-        base_window,
-        rel_vol,
-        cfg.get("gamma", 0.5),
-        cfg.get("min_lookback", 20),
-        cfg.get("max_lookback", 500)
-    ))
-
-
 def get_volatility_scaled_window(base_window: int, df: pd.DataFrame, symbol: str, engine: Optional[BiasOverrideEngine] = None, **kwargs) -> int:
     cfg = _load_point_02_config(engine)
     rel_vol = _compute_relative_volatility(df, cfg)
-    return compute_volatility_scaled_window(base_window, rel_vol, cfg.get("gamma", 0.5), cfg.get("min_lookback", 20), cfg.get("max_lookback", 500))
+    return int(compute_volatility_scaled_window(base_window, rel_vol, cfg.get("gamma", 0.5), cfg.get("min_lookback", 20), cfg.get("max_lookback", 500)))
 
 
 def get_slot15_history_lookback(df: pd.DataFrame, symbol: str, engine: Optional[BiasOverrideEngine] = None, **kwargs) -> int:
@@ -98,27 +83,20 @@ def compute_dynamic_lookback_windows(
     W_min: int = 24,
     W_max: int = 336
 ) -> Union[pd.Series, np.ndarray]:
-    """
-    Computes an array of dynamic lookback windows scaled by relative volatility.
-    """
     is_series = isinstance(close, pd.Series)
     s = pd.Series(close) if not is_series else close
     
-    # Compute log returns safely
     eps = 1e-12
     s_float = s.astype(float)
     rets = np.log((s_float / s_float.shift(1).clip(lower=eps)).clip(lower=eps))
     
-    # Compute rolling standard deviations causal shift(1)
     sigma_short = rets.rolling(window=short_window, min_periods=2).std().shift(1)
     sigma_long = rets.rolling(window=long_window, min_periods=2).std().shift(1)
     
-    # Relative volatility
     sigma_long_safe = sigma_long.replace(0.0, np.nan)
     sigma_rel = (sigma_short / sigma_long_safe).fillna(1.0)
     sigma_rel = sigma_rel.replace([np.inf, -np.inf], 1.0)
     
-    # Compute dynamic lookback window
     W_t_raw = np.round(W_base * (1.0 + sigma_rel) ** (-gamma))
     W_t = W_t_raw.clip(lower=W_min, upper=W_max).fillna(W_base).astype(int)
     
@@ -127,55 +105,99 @@ def compute_dynamic_lookback_windows(
     return W_t.to_numpy()
 
 
-# Vectorized top-level adapter for BiasOverrideEngine pipeline
 def compute_point_02_override(
-    df: pd.DataFrame,
-    W_base: int = 168,
-    gamma: float = 0.5,
-    short_window: int = 24,
-    long_window: int = 168,
-    W_min: int = 24,
-    W_max: int = 336,
+    current_window: Optional[int] = None,
+    base_window: Optional[int] = None,
+    rel_volatility: Optional[float] = None,
+    gamma: Optional[float] = None,
     engine: Optional[BiasOverrideEngine] = None,
-    symbol: str = ''
-) -> pd.Series:
+    df: Optional[pd.DataFrame] = None,
+    symbol: str = '',
+    *args,
+    **kwargs
+) -> Union[int, pd.Series]:
     """
-    Adapter for KRONOS V1-ALT BiasOverrideEngine.
+    Hardened multi-signature override adapter. Supporting both:
+    1. Scalar lookback query: compute_point_02_override(current_window, base_window, rel_volatility, gamma, engine, df, symbol)
+    2. Vectorized series query: compute_point_02_override(df, W_base, gamma, ...)
     """
-    try:
-        if "close" not in df.columns:
-            raise ValueError("DataFrame must contain a 'close' column to compute relative volatility.")
+    is_vectorized_call = False
+    
+    if len(args) > 0 and isinstance(args[0], pd.DataFrame):
+        df_in = args[0]
+        is_vectorized_call = True
+    elif isinstance(current_window, pd.DataFrame):
+        df_in = current_window
+        is_vectorized_call = True
+    else:
+        df_in = df
+        
+    if is_vectorized_call and df_in is not None:
+        W_base = base_window if base_window is not None else (current_window if isinstance(current_window, int) else 168)
+        cfg = _load_point_02_config(engine)
+        g = gamma if gamma is not None else cfg.get("gamma", 0.5)
+        
+        try:
+            if "close" not in df_in.columns:
+                raise ValueError("DataFrame must contain a 'close' column.")
             
-        new_val = compute_dynamic_lookback_windows(
-            close=df["close"],
-            W_base=W_base,
-            gamma=gamma,
-            short_window=short_window,
-            long_window=long_window,
-            W_min=W_min,
-            W_max=W_max
-        )
-        
-        # Legacy scalar value representation for apply_override compatibility
-        raw_val = float(W_base)
-        
-        if engine is not None:
-            # We want to map the series through apply_override or apply it directly
-            # For simplicity, if engine is present, apply override element-by-element or map.
-            # Usually, apply_override returns the final series or single float value depending on target.
-            # Here we follow engine routing.
-            final = engine.apply_override(
-                point_id="02",
-                raw_value=raw_val,
-                override_value=new_val.iloc[-1] if hasattr(new_val, "iloc") else W_base,
-                df=df,
-                symbol=symbol
+            new_val = compute_dynamic_lookback_windows(
+                close=df_in["close"],
+                W_base=W_base,
+                gamma=g,
+                short_window=kwargs.get("short_window", 24),
+                long_window=kwargs.get("long_window", 168),
+                W_min=kwargs.get("W_min", 24),
+                W_max=kwargs.get("W_max", 336)
             )
-            # return full series matching the decision or matching the output index
-            return pd.Series(np.full(len(df), final, dtype=int), index=df.index, name="dynamic_window")
             
-        return new_val
-    except Exception as e:
-        _logger.error(f"[POINT_02] Failed to compute dynamic lookbacks for {symbol}: {e}")
-        n = len(df)
-        return pd.Series(np.full(n, W_base, dtype=int), index=df.index, name="dynamic_window")
+            if engine is not None:
+                raw_val = float(W_base)
+                final = engine.apply_override(
+                    point_id="02",
+                    raw_value=raw_val,
+                    override_value=new_val.iloc[-1] if hasattr(new_val, "iloc") else W_base,
+                    df=df_in,
+                    symbol=symbol
+                )
+                return pd.Series(np.full(len(df_in), final, dtype=int), index=df_in.index, name="dynamic_window")
+                
+            return new_val
+        except Exception as e:
+            _logger.error(f"[POINT_02] Vectorized failure: {e}")
+            n = len(df_in)
+            return pd.Series(np.full(n, W_base, dtype=int), index=df_in.index, name="dynamic_window")
+            
+    else:
+        try:
+            cfg = _load_point_02_config(engine)
+            target_base = base_window if base_window is not None else (current_window if current_window is not None else 100)
+            g = gamma if gamma is not None else cfg.get("gamma", 0.5)
+            
+            if rel_volatility is None and df_in is not None:
+                rel_vol = _compute_relative_volatility(df_in, cfg)
+            else:
+                rel_vol = rel_volatility if rel_volatility is not None else 1.0
+                
+            scaled = int(round(compute_volatility_scaled_window(
+                target_base,
+                rel_vol,
+                g,
+                cfg.get("min_lookback", 20),
+                cfg.get("max_lookback", 500)
+            )))
+            
+            if engine is not None:
+                raw_val = current_window if current_window is not None else target_base
+                final = engine.apply_override(
+                    point_id="02",
+                    raw_value=raw_val,
+                    override_value=scaled,
+                    df=df_in,
+                    symbol=symbol
+                )
+                return int(final)
+            return scaled
+        except Exception as e:
+            _logger.error(f"[POINT_02] Scalar failure: {e}")
+            return current_window if current_window is not None else 100
